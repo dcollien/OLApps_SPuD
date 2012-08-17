@@ -1,0 +1,129 @@
+= SPμD Emulator =
+Simply Programmed μProcessor Device
+
+0. Go to the emulator page and turn ON the emulator (move the on/off switch shown on the circuit board) 
+
+1. Press Edit Program button
+
+2. Type program into textbox which pops up (and then never goes away btw - so drag it to one side when you are done)
+
+3. Press //Upload// button to transfer the program from the textbox into the memory (you can then see your code in the 4x4 grid)
+
+4. Press the //run// button (a graphic image on the board) to run the program you uploaded.
+
+5. Test it out by uploading and running a program which rings the bell, and then Halts.  (Make sure you turn up your PC's volume so you can hear the bell)
+
+6. Experiment away!
+
+Note: You can also edit memory directly in their boxes if the machine is in its initial state. (Press the //Reset// button to reset the machine into its initial state).
+
+
+= SPμD Lang =
+Simply Programmed μProcessor Description Language
+
+
+== SPμD Lang Grammar ==
+ * [[/Grammar | EBNF Grammar for SPμD Lang]]
+
+== Syntax Reference ==
+=== Instructions ===
+
+For full syntax specification see the grammar above.
+
+Note: IP is incremented by the specified value before the instruction is executed.
+
+==== Simple Instruction ====
+{{{
+<instruction number>, <IP increment>: <list of statements>.
+}}}
+
+Statements separated by ";"
+
+==== Case Instruction ====
+
+{{{
+<instruction number>, <IP increment>
+   case <condition> : <statement>; <statement> ... 
+   case <condition> : <list of statements>
+   ...
+   case <condition> : <list of statements>
+   where
+      <identifier> = <expression>;
+      <identifier> = <expression>; ...
+   .
+}}}
+
+ * only one case is executed
+ * where clause is optional.
+ * if no conditions are matched, nothing happens
+ * 'otherwise' catches everything (evaluated as 'true')
+
+=== Statements ===
+| **Syntax** | **Meaning** |
+| =  | Assignment: State-value on LHS is assigned the value of the RHS expression (as per C)    |
+| += | Add-Assignment: State-value on LHS = existing value + value of RHS expression (as per C) |
+| -= | Sub-Assignment: State-value on LHS = existing value - value of RHS expression (as per C) |
+| ++ | Increment: State-value on LHS = existing value + 1 (as per C) |
+| -- | Decrement: State-value on LHS = existing value - 1 (as per C) |
+|||
+| ^  | Bit-wise Exclusive Or |
+| &  | Bit-wise And |
+| {{{|}}}  | Bit-wise Or  |
+| << | Bit-shift Left  |
+| >> | Bit-shift Right |
+|||
+| +  | Add |
+| -  | Subtract |
+|||
+| *  | Multiply |
+| /  | Divide   |
+| %  | Mod      |
+|||
+| ~  | Bit-wise Not (Invert Bits) |
+|||
+| ( ) | Grouping |
+| #   | Hexadecimal Representation, e.g. #DEAD, #FF42 |
+|||
+| [ ] | De-reference memory cell (refer to value at a certain memory location, mod numMemoryAddresses) |
+| { } | Refer to value in a register specified by an integer value (respective to the order in which the registers are defined) |
+| IP, IS, R0, etc. | Refer to register value by name (must start with a letter and contain only letters and numbers, or "_") |
+|||
+| print( ) | Print numeric value |
+| printASCII( ) | Print ASCII character of value |
+| bell | Ring bell |
+| halt | Halt |
+| nop  | Does nothing |
+|||
+
+=== Conditions ===
+| **Syntax** | **Meaning** |
+| &&  | Boolean-AND |
+| {{{||}}} | Boolean-OR  |
+| >, <, >=, <=, ==, != | Comparison Operators (as per C, except returns boolean type) |
+| true, otherwise | Evaluate to boolean True |
+| false | Evaluates to boolean False |
+| ( ) | Grouping (as per C) |
+
+== Microprocessor Definition ==
+Of the form:
+
+{{{
+name: <processor name>
+memoryBitSize: <number of bits per memory cell>
+numMemoryAddresses: <number of memory addresses>
+registerBitSize: <number of bits per register>
+registerNames: <list of register names, comma separated - must contain IP and IS>
+
+[descriptions]
+<instruction number>: <description of this instruction>
+<instruction number>: <description of this instruction>
+...
+
+[instructions]
+<SPuD Syntax>
+}}}
+
+== Examples ==
+ * [[/4004]]
+
+Important Note: SPuD has nothing to do with potatoes
