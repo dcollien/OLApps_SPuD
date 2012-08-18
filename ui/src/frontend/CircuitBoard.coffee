@@ -18,6 +18,11 @@ class CircuitBoard
 				when 'print', 'printASCII'
 					@output.text state.output
 				when 'setRegister'
+					[register, value] = args
+
+					if register is 'IP'
+						@highlightCell value
+
 					console.log action, args
 				when 'setMemory'
 					console.log action, args
@@ -29,6 +34,10 @@ class CircuitBoard
 					console.log action
 				else
 					@updateAll state
+
+	highlightCell: (cell) ->
+		$('.highlighted-cell').removeClass('highlighted-cell')
+		console.log $('#memory-' + cell).addClass('highlighted-cell')
 
 	updateLEDs: (pipelineStep, executionStep) ->
 		if not @isOn then return
@@ -62,6 +71,7 @@ class CircuitBoard
 			@background.removeClass 'on'
 			@isOn = false
 
+			@chipBox.fadeOut()
 			$('.ledOn').removeClass( 'ledOn' )
 			@ledOverlay.hide()
 		else
@@ -105,7 +115,13 @@ class CircuitBoard
 					$cell.text cellNum
 				else
 					$cell = $('<td>')
-					$cell.attr 'id', ('memory-' + cellNum)
+					$cellInput = $('<input class="board-memory-input">')
+					$cellInput.attr 'id', ('memory-' + cellNum)
+					$cell.append $cellInput
+					$cell.tooltip {
+						placement: 'left'
+						title: ""+cellNum
+					}
 					cellNum += 1
 				
 				$row.append $cell
@@ -124,7 +140,11 @@ class CircuitBoard
 
 		for registerName in properties.registerNames
 			$headers.append $('<th>').text( registerName )
-			$registers.append $('<td>')
+			$cell = $('<td>')
+			$registerInput = $('<input class="board-register-input">')
+			$registerInput.attr 'id', 'register-' + registerName
+			$cell.append $registerInput
+			$registers.append $cell
 
 		$table.append $headers
 		$table.append $registers

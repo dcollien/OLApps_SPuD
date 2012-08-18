@@ -103,7 +103,7 @@ CircuitBoard = (function() {
       return _this.togglePower();
     });
     this.chip.onUpdate(function(state, action, args) {
-      var executionStep, pipelineStep;
+      var executionStep, pipelineStep, register, value;
       switch (action) {
         case 'ringBell':
           return _this.ringBell();
@@ -111,6 +111,10 @@ CircuitBoard = (function() {
         case 'printASCII':
           return _this.output.text(state.output);
         case 'setRegister':
+          register = args[0], value = args[1];
+          if (register === 'IP') {
+            _this.highlightCell(value);
+          }
           return console.log(action, args);
         case 'setMemory':
           return console.log(action, args);
@@ -124,6 +128,11 @@ CircuitBoard = (function() {
       }
     });
   }
+
+  CircuitBoard.prototype.highlightCell = function(cell) {
+    $('.highlighted-cell').removeClass('highlighted-cell');
+    return console.log($('#memory-' + cell).addClass('highlighted-cell'));
+  };
 
   CircuitBoard.prototype.updateLEDs = function(pipelineStep, executionStep) {
     if (!this.isOn) {
@@ -156,6 +165,7 @@ CircuitBoard = (function() {
     if (this.isOn) {
       this.background.removeClass('on');
       this.isOn = false;
+      this.chipBox.fadeOut();
       $('.ledOn').removeClass('ledOn');
       return this.ledOverlay.hide();
     } else {
@@ -194,7 +204,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.updateUI = function(properties) {
-    var $cell, $headers, $memoryContainer, $registerContainer, $registers, $row, $table, cellNum, i, j, numAddresses, numCols, numRows, registerName, _i, _j, _k, _len, _ref, _ref1;
+    var $cell, $cellInput, $headers, $memoryContainer, $registerContainer, $registerInput, $registers, $row, $table, cellNum, i, j, numAddresses, numCols, numRows, registerName, _i, _j, _k, _len, _ref, _ref1;
     this.chipName.append($('<span>').text(properties.name));
     $memoryContainer = $('<div class="board-memory-container">');
     $table = $('<table class="table table-bordered table-striped board-memory-table">');
@@ -210,7 +220,13 @@ CircuitBoard = (function() {
           $cell.text(cellNum);
         } else {
           $cell = $('<td>');
-          $cell.attr('id', 'memory-' + cellNum);
+          $cellInput = $('<input class="board-memory-input">');
+          $cellInput.attr('id', 'memory-' + cellNum);
+          $cell.append($cellInput);
+          $cell.tooltip({
+            placement: 'left',
+            title: "" + cellNum
+          });
           cellNum += 1;
         }
         $row.append($cell);
@@ -227,7 +243,11 @@ CircuitBoard = (function() {
     for (_k = 0, _len = _ref1.length; _k < _len; _k++) {
       registerName = _ref1[_k];
       $headers.append($('<th>').text(registerName));
-      $registers.append($('<td>'));
+      $cell = $('<td>');
+      $registerInput = $('<input class="board-register-input">');
+      $registerInput.attr('id', 'register-' + registerName);
+      $cell.append($registerInput);
+      $registers.append($cell);
     }
     $table.append($headers);
     $table.append($registers);
