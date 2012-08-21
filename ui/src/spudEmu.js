@@ -71,10 +71,11 @@ Processor = (function() {
   Processor.prototype.run = function(maxCycles) {
     var cycle, maxSteps, _results;
     cycle = 0;
-    maxSteps = maxCycles * this.state.processor.pipeline;
+    maxSteps = maxCycles * this.state.processor.pipeline.length;
     _results = [];
-    while (cycle < maxSteps && !this.state.isHalted) {
-      _results.push(this.step());
+    while ((cycle < maxSteps) && !this.state.isHalted) {
+      this.step();
+      _results.push(cycle += 1);
     }
     return _results;
   };
@@ -176,10 +177,11 @@ State = (function() {
   };
 
   State.prototype.setRegister = function(registerName, value) {
-    var registerIndex;
+    var newValue, registerIndex;
     registerIndex = this.processor.registerIndexLookup[registerName];
-    this.registers[registerIndex] = this.constrainRegister(value);
-    return this.changeHandler(this.eventFor('setRegister', registerName, value));
+    newValue = this.constrainRegister(value);
+    this.registers[registerIndex] = newValue;
+    return this.changeHandler(this.eventFor('setRegister', registerName, newValue));
   };
 
   State.prototype.getMemory = function(address) {
@@ -188,9 +190,11 @@ State = (function() {
   };
 
   State.prototype.setMemory = function(address, value) {
+    var newValue;
     address = this.constrainAddress(address);
-    this.memory[address] = this.constrainMemory(value);
-    return this.changeHandler(this.eventFor('setMemory', address, value));
+    newValue = this.constrainMemory(value);
+    this.memory[address] = newValue;
+    return this.changeHandler(this.eventFor('setMemory', address, newValue));
   };
 
   State.prototype.getAllMemory = function() {
@@ -287,7 +291,7 @@ BrowserEmu = (function() {
 
   function BrowserEmu() {
     this.messageCallbacks = [];
-    this.maxCycles = 2048;
+    this.maxCycles = 100;
   }
 
   BrowserEmu.prototype.defineProcessor = function(definition) {
@@ -320,7 +324,7 @@ BrowserEmu = (function() {
   };
 
   BrowserEmu.prototype.postMessage = function(message) {
-    var data, dataObject, method;
+    var address, data, dataObject, instruction, instructions, method, name, value, _i, _len, _ref;
     try {
       dataObject = JSON.parse(message);
       method = dataObject.method;
@@ -333,6 +337,15 @@ BrowserEmu = (function() {
       case 'init':
         this.processor = null;
         this.defineProcessor(data);
+        instructions = [];
+        _ref = this.processor.instructions;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          instruction = _ref[_i];
+          instructions.push({
+            description: instruction.description,
+            ipIncrement: instruction.ipIncrement
+          });
+        }
         return this.send('ready', {
           name: this.processor.name,
           memoryBitSize: this.processor.memoryBitSize,
@@ -340,8 +353,17 @@ BrowserEmu = (function() {
           registerBitSize: this.processor.registerBitSize,
           registerNames: this.processor.registerNames,
           registerIndexLookup: this.processor.registerIndexLookup,
-          numRegisters: this.processor.numRegisters
+          numRegisters: this.processor.numRegisters,
+          instructions: instructions
         });
+      case 'updateRegister':
+        name = data.registerName;
+        value = data.value;
+        return this.processor.state.setRegister(name, value);
+      case 'updateMemory':
+        address = data.memoryAddress;
+        value = data.value;
+        return this.processor.state.setMemory(address, value);
       case 'reset':
         if (this.processor != null) {
           return this.processor.state.reset();
@@ -791,7 +813,7 @@ Interpreter = (function() {
 
   Interpreter.prototype.condition = function() {
     var value;
-    value = false;
+    value = this.boolExpression();
     while (this.accept(Token.OpLogic)) {
       switch (this.acceptedToken.value) {
         case Symbol.boolAnd:
@@ -843,11 +865,11 @@ Interpreter = (function() {
   };
 
   Interpreter.prototype.statement = function() {
-    var argumentValue, memoryAddress, registerName, registerNumber, value;
+    var argumentValue, commandValue, memoryAddress, registerName, registerNumber, value;
     value = 0;
     if (this.accept(Token.RegisterName)) {
       registerName = this.acceptedToken.value;
-      if (this.validRegister(registerName)) {
+      if (this.isValidRegister(registerName)) {
         value = this.assignment(this.state.getRegister(registerName));
         return this.state.setRegister(registerName, value);
       } else {
@@ -873,10 +895,11 @@ Interpreter = (function() {
       switch (this.acceptedToken.value) {
         case Symbol.commandPrint:
         case Symbol.commandPrintASCII:
+          commandValue = this.acceptedToken.value;
           this.expect(Token.GroupOpen);
           argumentValue = this.intExpression();
           this.expect(Token.GroupClose);
-          if (this.acceptedToken.value === Symbol.commandPrint) {
+          if (commandValue === Symbol.commandPrint) {
             return this.state.print(argumentValue);
           } else {
             return this.state.printASCII(argumentValue);

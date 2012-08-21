@@ -229,8 +229,9 @@ class Interpreter
 		return value
 	
 	condition: ->
-		value = false
+		value = @boolExpression( )
 		
+
 		while @accept( Token.OpLogic )
 			switch @acceptedToken.value
 				when Symbol.boolAnd
@@ -275,7 +276,7 @@ class Interpreter
 		if @accept( Token.RegisterName )
 			registerName = @acceptedToken.value
 			
-			if @validRegister( registerName )
+			if @isValidRegister( registerName )
 				value = @assignment( @state.getRegister( registerName ) )
 				@state.setRegister( registerName, value )
 			else
@@ -300,14 +301,16 @@ class Interpreter
 				throw new SyntaxError( "Register reference out of bounds evaluating statement" )
 		else if @accept( Token.Keyword )
 			argumentValue = 0
-			
+
 			switch @acceptedToken.value
 				when Symbol.commandPrint, Symbol.commandPrintASCII
+					commandValue = @acceptedToken.value
+
 					@expect( Token.GroupOpen )
 					argumentValue = @intExpression( )
 					@expect( Token.GroupClose )
-					
-					if @acceptedToken.value == Symbol.commandPrint
+
+					if commandValue is Symbol.commandPrint
 						@state.print( argumentValue )
 					else
 						@state.printASCII( argumentValue )

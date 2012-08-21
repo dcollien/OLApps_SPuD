@@ -50,9 +50,10 @@ class State
 		
 	setRegister: (registerName, value) ->
 		registerIndex = @processor.registerIndexLookup[registerName]
-		@registers[registerIndex] = @constrainRegister value
+		newValue = @constrainRegister value
+		@registers[registerIndex] = newValue
 
-		@changeHandler (@eventFor 'setRegister', registerName, value)
+		@changeHandler (@eventFor 'setRegister', registerName, newValue)
 		
 	getMemory: (address) ->
 		address = @constrainAddress address
@@ -60,9 +61,10 @@ class State
 		
 	setMemory: (address, value) ->
 		address = @constrainAddress address
-		@memory[address] = @constrainMemory value
+		newValue = @constrainMemory value
+		@memory[address] = newValue
 
-		@changeHandler (@eventFor 'setMemory', address, value)
+		@changeHandler (@eventFor 'setMemory', address, newValue)
 		
 	getAllMemory: ->
 		return @memory.slice()

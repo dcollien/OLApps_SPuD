@@ -52,10 +52,11 @@ class Processor
 
 	run: (maxCycles) ->
 		cycle = 0
-		maxSteps = maxCycles * @state.processor.pipeline
-		while cycle < maxSteps and !@state.isHalted
+		maxSteps = maxCycles * @state.processor.pipeline.length
+		while (cycle < maxSteps) and !@state.isHalted
 			@step()
-		
+			cycle += 1
+	
 	setRegisterNames: (names) ->
 		@registerIndexLookup = { }
 		@registerNames = names

@@ -37,6 +37,24 @@ class Chip
 
 	run: -> @worker.postMessage 'run'
 
+	updateRegister: (registerName, value) ->
+		@worker.postMessage JSON.stringify( {
+				method: 'updateRegister'
+				data: {
+					'registerName': registerName
+					'value': value
+				}
+			} )
+
+	updateMemory: (memoryAddress, value) ->
+		@worker.postMessage JSON.stringify( {
+				method: 'updateMemory'
+				data: {
+					'memoryAddress': memoryAddress
+					'value': value
+				}
+			} )
+	
 	receive: (method, data) ->
 		switch method
 			when 'ready'
