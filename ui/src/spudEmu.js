@@ -364,6 +364,8 @@ BrowserEmu = (function() {
         address = data.memoryAddress;
         value = data.value;
         return this.processor.state.setMemory(address, value);
+      case 'updateState':
+        return this.processor.state.fromObject(data);
       case 'reset':
         if (this.processor != null) {
           return this.processor.state.reset();

@@ -54,6 +54,13 @@ Chip = (function() {
     return this.worker.postMessage('run');
   };
 
+  Chip.prototype.setState = function(state) {
+    return this.worker.postMessage(JSON.stringify({
+      method: 'updateState',
+      data: state
+    }));
+  };
+
   Chip.prototype.updateRegister = function(registerName, value) {
     return this.worker.postMessage(JSON.stringify({
       method: 'updateRegister',
@@ -120,7 +127,7 @@ CircuitBoard = (function() {
     this.effectsEnabled = true;
     this.build();
     this.chip.onReady(function(event) {
-      _this.updateUI(event);
+      _this.buildInspector(event);
       _this.isReady = true;
       return _this.togglePower();
     });
@@ -129,6 +136,7 @@ CircuitBoard = (function() {
       if (!_this.isOn) {
         return;
       }
+      _this.currentState = state;
       switch (action) {
         case 'ringBell':
           _this.ringBell();
@@ -488,14 +496,104 @@ CircuitBoard = (function() {
     }
   };
 
-  CircuitBoard.prototype.updateUI = function(properties) {
-    var $cell, $headers, $memoryContainer, $registerContainer, $registerInput, $registers, $table, changeRegister, i, maxRowLength, registerName, rowLength, _i, _j, _len, _ref, _ref1,
+  CircuitBoard.prototype.buildInspector = function(properties) {
+    var $cell, $groupA, $groupB, $groupC, $headers, $memoryContainer, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $table, $uploadBtn, changeRegister, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, unhoverRegister, _i, _j, _k, _len, _len1, _ref, _ref1, _ref2,
       _this = this;
     this.properties = properties;
     changeRegister = function(name, value) {
       return _this.chip.updateRegister(name, parseInt(value, 16));
     };
+    hoverRegister = function(regInput) {
+      var instruction, val;
+      if ((regInput.attr('id')) === 'register-IP') {
+        console.log(val);
+        val = parseInt(regInput.val(), 16);
+        $('#memory-' + val).addClass('increment-highlight');
+        return _this.instructionHelp.text('Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')');
+      } else if ((regInput.attr('id')) === 'register-IS') {
+        instruction = _this.properties.instructions[parseInt(regInput.val(), 16)];
+        if (instruction != null) {
+          return _this.instructionHelp.text(regInput.val() + ': ' + instruction.description);
+        }
+      }
+    };
+    unhoverRegister = function(regInput) {
+      $('.board-memory-input').removeClass('increment-highlight');
+      return _this.instructionHelp.text('');
+    };
+    $refTable = $('<table class="table table-bordered">');
+    $reference = $('<div class="board-reference">').append($refTable);
+    $refTable.append($('<tr>').append($('<th>').text('#')).append($('<th>').text('Hex')).append($('<th>').text('Inc')).append($('<th>').text('Description')));
+    i = 0;
+    _ref = this.properties.instructions;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      instruction = _ref[_i];
+      row = $('<tr>');
+      row.append($('<td>').text(i));
+      row.append($('<td>').text('0x' + i.toString(16).toUpperCase()));
+      row.append($('<td>').text(instruction.ipIncrement));
+      row.append($('<td>').text(instruction.description));
+      $refTable.append(row);
+      i += 1;
+    }
+    this.instructionReference.html($reference);
     this.chipName.append($('<span>').text(properties.name));
+    this.toolbar = $('<div class="btn-toolbar board-toolbar">');
+    $groupA = $('<div class="btn-group">');
+    $groupB = $('<div class="btn-group">');
+    $groupC = $('<div class="btn-group">');
+    $saveBtn = $('<div class="btn btn-small">').html($('<i class="icon-download">')).tooltip({
+      title: 'Save Current State',
+      placement: 'bottom'
+    });
+    $saveBtn.click(function() {
+      return _this.savedState = _this.currentState;
+    });
+    $restoreBtn = $('<div class="btn btn-small">').html($('<i class="icon-upload">')).tooltip({
+      title: 'Restore State',
+      placement: 'bottom'
+    });
+    $restoreBtn.click(function() {
+      if (_this.savedState != null) {
+        console.log(_this.savedState);
+        return _this.chip.setState(_this.savedState);
+      }
+    });
+    $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-download-alt"> ')).tooltip({
+      title: 'Upload Program',
+      placement: 'bottom'
+    });
+    $uploadBtn.click(function() {
+      return _this.editor.dialog("open");
+    });
+    $resetBtn = $('<div class="btn btn-small">').html($('<i class="icon-off">')).tooltip({
+      title: 'Reset',
+      placement: 'bottom'
+    });
+    $resetBtn.click(function() {
+      return _this.reset();
+    });
+    /*
+    		$helpBtn = $('<div class="btn btn-small">').html( $('<i class="icon-question-sign">') ).tooltip
+    			title: 'Instruction Set Reference'
+    			placement: 'bottom'
+    
+    		$helpBtn.click =>
+    */
+
+    $groupA.append($saveBtn).append($restoreBtn).append($uploadBtn);
+    $groupB.append($resetBtn);
+    /*
+    		$groupC
+    			.append( $helpBtn )
+    */
+
+    this.toolbar.append($groupA).append($groupB);
+    /*
+    			.append( $groupC )
+    */
+
+    this.chipBox.append(this.toolbar);
     $memoryContainer = $('<div class="board-memory-container">');
     this.buildMemoryPages(properties, $memoryContainer);
     this.chipBox.append($memoryContainer);
@@ -506,9 +604,9 @@ CircuitBoard = (function() {
     maxRowLength = 6;
     maxRowLength = Math.min(maxRowLength, properties.registerNames.length);
     rowLength = 0;
-    _ref = properties.registerNames;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      registerName = _ref[_i];
+    _ref1 = properties.registerNames;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      registerName = _ref1[_j];
       if (rowLength >= maxRowLength) {
         rowLength = 0;
         $table.append($headers);
@@ -528,6 +626,12 @@ CircuitBoard = (function() {
         value = cell.val();
         return changeRegister(name, value);
       });
+      $registerInput.mouseover(function() {
+        return hoverRegister($(this));
+      });
+      $registerInput.mouseout(function() {
+        return unhoverRegister($(this));
+      });
       $registerInput.click(function() {
         return $(this).select();
       });
@@ -536,7 +640,7 @@ CircuitBoard = (function() {
       rowLength += 1;
     }
     if (rowLength !== 0) {
-      for (i = _j = 0, _ref1 = maxRowLength - rowLength; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+      for (i = _k = 0, _ref2 = maxRowLength - rowLength; 0 <= _ref2 ? _k < _ref2 : _k > _ref2; i = 0 <= _ref2 ? ++_k : --_k) {
         $headers.append($('<td>'));
         $registers.append($('<td>'));
       }
@@ -556,9 +660,53 @@ CircuitBoard = (function() {
     return this.chipBox.append(this.hiddenTables);
   };
 
+  CircuitBoard.prototype.uploadCode = function() {
+    var code, instruction, instructions, memory, val, _i, _len;
+    code = this.codeBox.val();
+    instructions = (code.replace(/\s+/g, ',')).split(',');
+    memory = [];
+    for (_i = 0, _len = instructions.length; _i < _len; _i++) {
+      instruction = instructions[_i];
+      instruction = instruction.replace(/\s+/g, '');
+      if (this.hexOption.prop('checked')) {
+        val = parseInt(instruction, 16);
+      } else {
+        val = parseInt(instruction);
+      }
+      if (instruction !== '' && !(isNaN(val))) {
+        memory.push(val);
+      }
+    }
+    this.currentState = {
+      memory: memory,
+      registers: [],
+      isHalted: false,
+      output: '',
+      numBellRings: 0,
+      pipelineStep: 0,
+      executionStep: 0
+    };
+    console.log(memory);
+    return this.chip.setState(this.currentState);
+  };
+
   CircuitBoard.prototype.build = function() {
-    var _this = this;
+    var $codeTab, $editorTab, $refTab, $tabContent, $tabs, uploadCode,
+      _this = this;
     this.board = $(this.selector);
+    $codeTab = $('<li class="active"><a href="#code" class="editor-tab">Code</a></li>');
+    $refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>');
+    $tabs = $('<ul class="nav nav-tabs">').append($codeTab).append($refTab);
+    this.codeBox = $('<textarea class="board-code">');
+    this.hexOption = $('<input name="use-hex" type="checkbox" checked="checked">');
+    this.editor = $('<div class="board-editor" title="Upload Code">');
+    $editorTab = $('<div class="tab-pane active" id="code">');
+    $editorTab.append(this.codeBox).append('<br/>').append($('<label for="use-hex">').append(this.hexOption).append($('<span>').text(' Use Hexadecimal')));
+    this.instructionReference = $('<div class="tab-pane" id="reference">');
+    $tabContent = $('<div class="tab-content">');
+    $tabContent.append($editorTab).append(this.instructionReference);
+    this.editor.append($tabs);
+    this.editor.append($tabContent);
     this.background = $('<div class="board-bg">');
     this.powerSwitch = $('<div class="board-power">');
     this.bell = $('<div class="board-bell">');
@@ -584,7 +732,7 @@ CircuitBoard = (function() {
     });
     this.resetButton.tooltip({
       placement: 'left',
-      title: 'Reset to starting state'
+      title: 'Reset to zero'
     });
     this.runButton.tooltip({
       placement: 'left',
@@ -612,7 +760,30 @@ CircuitBoard = (function() {
       }
     });
     this.board.html(this.background);
-    return this.background.append(this.powerSwitch).append(this.bell).append(this.bellOverlay).append(this.fetchLED).append(this.incrementLED).append(this.executeLED).append(this.resetButton).append(this.runButton).append(this.stepButton).append(this.chipName).append(this.output).append(this.ledOverlay).append(this.chipBox);
+    this.board.append(this.editor);
+    this.background.append(this.powerSwitch).append(this.bell).append(this.bellOverlay).append(this.fetchLED).append(this.incrementLED).append(this.executeLED).append(this.resetButton).append(this.runButton).append(this.stepButton).append(this.chipName).append(this.output).append(this.ledOverlay).append(this.chipBox);
+    uploadCode = function() {
+      return _this.uploadCode();
+    };
+    this.editor.dialog({
+      autoOpen: false,
+      width: 540,
+      buttons: {
+        "Close": function() {
+          return $(this).dialog("close");
+        },
+        "Upload": function() {
+          uploadCode();
+          return $(this).dialog("close");
+        }
+      },
+      position: [20, 13]
+    });
+    $('button').addClass('btn');
+    return $('.editor-tab').click(function() {
+      $(this).tab('show');
+      return false;
+    });
   };
 
   return CircuitBoard;

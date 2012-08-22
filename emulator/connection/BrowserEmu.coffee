@@ -63,6 +63,9 @@ class BrowserEmu
 				value = data.value
 				@processor.state.setMemory address, value
 
+			when 'updateState'
+				@processor.state.fromObject data
+
 			when 'reset'
 				if @processor?
 					@processor.state.reset()

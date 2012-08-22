@@ -37,6 +37,12 @@ class Chip
 
 	run: -> @worker.postMessage 'run'
 
+	setState: (state) ->
+		@worker.postMessage JSON.stringify( {
+			method: 'updateState'
+			data: state
+		} )
+
 	updateRegister: (registerName, value) ->
 		@worker.postMessage JSON.stringify( {
 				method: 'updateRegister'
@@ -54,7 +60,7 @@ class Chip
 					'value': value
 				}
 			} )
-	
+
 	receive: (method, data) ->
 		switch method
 			when 'ready'

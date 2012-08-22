@@ -10,12 +10,14 @@ class CircuitBoard
 		@build()
 
 		@chip.onReady (event) =>
-			@updateUI event
+			@buildInspector event
 			@isReady = true
 			@togglePower()
 
 		@chip.onUpdate (state, action, args) =>
 			if not @isOn then return
+
+			@currentState = state
 
 			switch action
 				when 'ringBell'
@@ -351,12 +353,128 @@ class CircuitBoard
 		if (pages > 1)
 			$memoryContainer.append $pagination
 
-	updateUI: (properties) ->
+	buildInspector: (properties) ->
 		@properties = properties
+
+		#properties.numMemoryAddresses = 1024
 
 		changeRegister = (name, value) => @chip.updateRegister name, parseInt(value, 16)
 
+		hoverRegister = (regInput) =>
+			if (regInput.attr 'id') is 'register-IP'
+				console.log val
+
+				val = parseInt regInput.val(), 16
+
+				$('#memory-' + val).addClass 'increment-highlight'
+				@instructionHelp.text 'Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')'
+
+			else if (regInput.attr 'id') is 'register-IS'
+				instruction = @properties.instructions[parseInt(regInput.val(), 16)]
+
+				if instruction?
+					@instructionHelp.text regInput.val() + ': ' + instruction.description
+
+
+		unhoverRegister = (regInput) =>
+			$('.board-memory-input').removeClass 'increment-highlight'
+			@instructionHelp.text ''
+
+
+		$refTable = $('<table class="table table-bordered">')
+
+		$reference = $('<div class="board-reference">').append $refTable
+
+		$refTable.append(
+			$('<tr>')
+				.append($('<th>').text('#'))
+				.append($('<th>').text('Hex'))
+				.append($('<th>').text('Inc'))
+				.append($('<th>').text('Description'))
+		)
+
+		i = 0
+		for instruction in @properties.instructions
+			row = $('<tr>')
+			row.append( $('<td>').text i )
+			row.append( $('<td>').text '0x' + i.toString(16).toUpperCase() )
+			row.append( $('<td>').text instruction.ipIncrement )
+			row.append $('<td>').text( instruction.description )
+			$refTable.append row
+
+			i += 1
+
+		@instructionReference.html $reference
+
 		@chipName.append $('<span>').text( properties.name )
+
+
+		@toolbar = $('<div class="btn-toolbar board-toolbar">')
+
+		$groupA = $('<div class="btn-group">')
+		$groupB = $('<div class="btn-group">')
+		$groupC = $('<div class="btn-group">')
+
+		$saveBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download">') ).tooltip
+			title: 'Save Current State'
+			placement: 'bottom'
+
+		$saveBtn.click =>
+			@savedState = @currentState
+
+		$restoreBtn = $('<div class="btn btn-small">').html( $('<i class="icon-upload">') ).tooltip
+			title: 'Restore State'
+			placement: 'bottom'
+
+		$restoreBtn.click =>
+			if @savedState?
+				console.log @savedState
+				@chip.setState @savedState
+
+		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download-alt"> ') ).tooltip
+			title: 'Upload Program'
+			placement: 'bottom'
+
+		$uploadBtn.click =>
+			@editor.dialog "open"
+
+		$resetBtn = $('<div class="btn btn-small">').html( $('<i class="icon-off">') ).tooltip
+			title: 'Reset'
+			placement: 'bottom'
+
+		$resetBtn.click =>
+			@reset()
+
+		###
+		$helpBtn = $('<div class="btn btn-small">').html( $('<i class="icon-question-sign">') ).tooltip
+			title: 'Instruction Set Reference'
+			placement: 'bottom'
+
+		$helpBtn.click =>
+		###
+
+		$groupA
+			.append( $saveBtn )
+			.append( $restoreBtn )
+			.append( $uploadBtn )
+
+		$groupB
+			.append( $resetBtn )
+
+		###
+		$groupC
+			.append( $helpBtn )
+		###
+
+		@toolbar
+			.append( $groupA )
+			.append( $groupB )
+
+		###
+			.append( $groupC )
+		###
+
+		@chipBox.append @toolbar
 
 		$memoryContainer = $('<div class="board-memory-container">')
 
@@ -393,6 +511,8 @@ class CircuitBoard
 				name = (cell.attr 'id').replace 'register-', ''
 				value = cell.val()
 				changeRegister name, value
+			$registerInput.mouseover -> hoverRegister $(this)
+			$registerInput.mouseout -> unhoverRegister $(this)
 			$registerInput.click -> $(this).select()
 
 			$cell.append $registerInput
@@ -421,13 +541,76 @@ class CircuitBoard
 		@status = $('<div class="board-status">')
 		@status.append(@cycleLabel).append(@haltedStatus)
 
+
 		@chipBox.append $registerContainer
 		@chipBox.append @instructionHelp
 		@chipBox.append @status
 		@chipBox.append @hiddenTables
 
+	uploadCode: ->
+		code = @codeBox.val()
+
+		instructions = (code.replace /\s+/g, ',').split ','
+
+		memory = []
+		for instruction in instructions
+			instruction = instruction.replace /\s+/g, ''
+			
+			if @hexOption.prop 'checked'
+				val = parseInt instruction, 16 # hex
+			else
+				val = parseInt instruction
+
+			if instruction isnt '' and not (isNaN val)
+				memory.push val
+
+		@currentState = {
+			memory: memory
+			registers: []
+			isHalted: false
+			output: ''
+			numBellRings: 0
+			pipelineStep: 0
+			executionStep: 0
+		}
+
+		console.log memory
+		@chip.setState @currentState
+
+
+
 	build: ->
 		@board = $(@selector)
+
+		$codeTab = $('<li class="active"><a href="#code" class="editor-tab">Code</a></li>')
+		$refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>')
+
+		$tabs = $('<ul class="nav nav-tabs">')
+			.append( $codeTab )
+			.append( $refTab)
+
+		@codeBox = $('<textarea class="board-code">')
+
+		@hexOption = $('<input name="use-hex" type="checkbox" checked="checked">')
+		@editor = $('<div class="board-editor" title="Upload Code">')
+
+
+		$editorTab = $('<div class="tab-pane active" id="code">')
+		$editorTab
+			.append( @codeBox )
+			.append( '<br/>' )
+			.append( $('<label for="use-hex">').append(@hexOption).append( $('<span>').text ' Use Hexadecimal' ) )
+
+		@instructionReference = $('<div class="tab-pane" id="reference">')
+
+		$tabContent = $('<div class="tab-content">')
+		$tabContent
+			.append( $editorTab )
+			.append( @instructionReference )
+
+
+		@editor.append $tabs
+		@editor.append $tabContent
 
 		@background   = $('<div class="board-bg">')
 		
@@ -467,7 +650,7 @@ class CircuitBoard
 
 		@resetButton.tooltip {
 			placement: 'left'
-			title: 'Reset to starting state'
+			title: 'Reset to zero'
 		}
 
 		@runButton.tooltip {
@@ -493,6 +676,8 @@ class CircuitBoard
 		#@bell.click => @ringBell()
 
 		@board.html @background
+		@board.append @editor
+
 		@background
 			.append( @powerSwitch )
 			.append( @bell )
@@ -508,8 +693,25 @@ class CircuitBoard
 			.append( @ledOverlay )
 			.append( @chipBox )
 
+		uploadCode = => @uploadCode()
+		@editor.dialog
+			autoOpen: false
+			width: 540
+			buttons: {
+				"Close": ->
+					$(this).dialog "close"
 
+				"Upload": ->
+					uploadCode()
+					$(this).dialog "close"
+			}
+			position: [20, 13]
 
+		$('button').addClass 'btn'
+
+		$('.editor-tab').click -> 
+			$(this).tab( 'show' )
+			return false
 
 
 
