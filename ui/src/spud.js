@@ -164,10 +164,15 @@ Chip = (function() {
 
 CircuitBoard = (function() {
 
-  function CircuitBoard(selector, definition, startingState) {
+  function CircuitBoard(selector, definition, startingState, audio) {
     var _this = this;
     this.selector = selector;
     this.definition = definition;
+    this.audio = audio;
+    this.soundEnabled = false;
+    if (this.audio != null) {
+      this.soundEnabled = true;
+    }
     this.isOn = false;
     this.chip = new Chip(this.definition);
     this.isReady = false;
@@ -222,6 +227,28 @@ CircuitBoard = (function() {
       return _this.updateAll(state);
     });
   }
+
+  CircuitBoard.prototype.playSound = function(sound) {
+    if (!this.soundEnabled) {
+      return;
+    }
+    if (this.playing != null) {
+      this.playing.remove();
+    }
+    this.playing = $('<embed style="height:0" loop="false" autostart="true" hidden="true"/>').attr('src', sound);
+    return this.playing.appendTo('body');
+  };
+
+  CircuitBoard.prototype.backgroundSound = function(sound) {
+    if (!this.soundEnabled) {
+      return;
+    }
+    if (this.bgSound != null) {
+      this.bgSound.remove();
+    }
+    this.bgSound = $('<embed style="height:0" loop="true" autostart="true" hidden="true"/>').attr('src', sound);
+    return this.bgSound.appendTo('body');
+  };
 
   CircuitBoard.prototype.handleUpdate = function(state, action, args) {
     var address, cycleText, executionStep, pipelineStep, register, value;
@@ -431,6 +458,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.togglePower = function() {
+    var _this = this;
     if (!this.isReady) {
       return;
     }
@@ -440,12 +468,22 @@ CircuitBoard = (function() {
       this.chipBox.fadeOut();
       $('.ledOn').removeClass('ledOn');
       this.ledOverlay.hide();
-      return this.chipBox.fadeOut();
+      this.chipBox.fadeOut();
+      this.playSound(this.audio.powerdown);
+      this.output.fadeOut();
+      return setTimeout((function() {
+        return _this.bgSound.remove();
+      }), 500);
     } else {
       this.background.addClass('on');
       this.isOn = true;
       this.chipBox.fadeIn();
-      return this.reset();
+      this.reset();
+      this.playSound(this.audio.powerup);
+      this.output.fadeIn();
+      return setTimeout((function() {
+        return _this.backgroundSound(_this.audio.hum);
+      }), 500);
     }
   };
 
@@ -505,6 +543,9 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.ringBell = function() {
     var _this = this;
+    if (this.areEffectsEnabled()) {
+      this.playSound(this.audio.ding);
+    }
     this.bell.stop(true, true);
     this.bell.addClass('ringing');
     return this.bell.fadeOut(800, function() {
@@ -967,7 +1008,7 @@ $.extend($.fn.spud, {
   defaultOptions: {},
   init: function(element, options) {
     var circuitBoard;
-    circuitBoard = new CircuitBoard(element, options.definition, options.startingState);
+    circuitBoard = new CircuitBoard(element, options.definition, options.startingState, options.audio);
     return $(element).data('spud', circuitBoard);
   }
 });

@@ -24,5 +24,5 @@ $.extend $.fn.spud,
 	defaultOptions: {}
 
 	init: (element, options) ->
-		circuitBoard = new CircuitBoard( element, options.definition, options.startingState )
+		circuitBoard = new CircuitBoard( element, options.definition, options.startingState, options.audio )
 		$(element).data 'spud', circuitBoard

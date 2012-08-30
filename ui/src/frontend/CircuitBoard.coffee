@@ -1,7 +1,12 @@
 # todo: inspector in its own class
 
 class CircuitBoard
-	constructor: (@selector, @definition, startingState) ->
+	constructor: (@selector, @definition, startingState, @audio) ->
+
+		@soundEnabled = false
+		if @audio?
+			@soundEnabled = true
+
 		@isOn = false
 		@chip = new Chip( @definition )
 
@@ -50,6 +55,25 @@ class CircuitBoard
 
 		@chip.onRunUpdate (state) =>
 			@updateAll state
+
+	playSound: (sound) ->
+		return if not @soundEnabled
+
+		if @playing?
+			@playing.remove()
+
+		@playing = $('<embed style="height:0" loop="false" autostart="true" hidden="true"/>').attr 'src', sound
+		@playing.appendTo 'body'
+
+	backgroundSound: (sound) ->
+		return if not @soundEnabled
+
+		if @bgSound?
+			@bgSound.remove()
+
+
+		@bgSound = $('<embed style="height:0" loop="true" autostart="true" hidden="true"/>').attr 'src', sound
+		@bgSound.appendTo 'body'
 
 
 	handleUpdate: (state, action, args) ->
@@ -260,13 +284,20 @@ class CircuitBoard
 			@ledOverlay.hide()
 			@chipBox.fadeOut()
 
+			@playSound @audio.powerdown
+			@output.fadeOut( )
+
+			setTimeout (=> @bgSound.remove()), 500
 		else
 			@background.addClass 'on'
 			@isOn = true
 			@chipBox.fadeIn()
 			@reset()
 
-		# TODO: humming
+			@playSound @audio.powerup
+			@output.fadeIn( )
+
+			setTimeout (=> @backgroundSound @audio.hum), 500
 
 	reset: ->
 		if @isOn
@@ -313,6 +344,10 @@ class CircuitBoard
 		$('.board-led').fadeIn 'fast', -> flash this
 
 	ringBell: ->
+
+		if @areEffectsEnabled()
+			@playSound @audio.ding
+
 		@bell.stop true, true
 		@bell.addClass 'ringing'
 		@bell.fadeOut 800, =>

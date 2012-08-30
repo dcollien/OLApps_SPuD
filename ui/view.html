@@ -4,8 +4,7 @@
 		<title>SPuD</title>
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-1.8.0.min.js"></script>
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-ui-1.8.23.custom.min.js"></script>
-		<script src="./lib/bootstrap/js/bootstrap.min.js"></script>
-
+		<script type="text/javascript" src="./lib/bootstrap/js/bootstrap.min.js"></script>
 
 		<script src="./src/spud.js"></script>
 
@@ -81,9 +80,17 @@ registerNames: IP, IS, R0, R1, SW
 </textarea>
 
 		<script>
-			$('#spud').spud( {
-				definition: $('#definition').text(),
-				startingState: $('#startingState').text()
+			$(document).ready( function( ) {
+				$('#spud').spud( {
+					definition: $('#definition').text(),
+					startingState: $('#startingState').text(),
+					audio: {
+						hum: "./media/hum.mp3",
+						powerup: "./media/powerup.mp3",
+						powerdown: "./media/powerdown.mp3",
+						ding: "./media/ding.mp3"
+					}
+				} );
 			} );
 		</script>
 	</body>
