@@ -81,7 +81,7 @@ class State
 	setAllRegisters: (values) ->
 		for i in [0...@processor.numRegisters]
 			if i < values.length
-				@registers[i] = @constrainRegisters values[i]
+				@registers[i] = @constrainRegister values[i]
 			else
 				@registers[i] = 0
 

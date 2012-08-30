@@ -217,7 +217,7 @@ State = (function() {
     var i, _i, _ref;
     for (i = _i = 0, _ref = this.processor.numRegisters; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
       if (i < values.length) {
-        this.registers[i] = this.constrainRegisters(values[i]);
+        this.registers[i] = this.constrainRegister(values[i]);
       } else {
         this.registers[i] = 0;
       }
