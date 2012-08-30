@@ -178,6 +178,8 @@
 .board-output-lcd {
 	position: absolute;
 
+	white-space: pre;
+
 	font-family: LCDDotRegular;
 	font-size: 20px;
 	line-height: 24px;
@@ -426,6 +428,8 @@
 }
 
 .board-reference {
+	border: 1px solid #eee;
+	padding: 4px;
 	height: 320px;
 	overflow: auto;
 	font-size: 13px;

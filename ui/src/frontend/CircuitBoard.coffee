@@ -1,11 +1,13 @@
+# todo: inspector in its own class
+
 class CircuitBoard
-	constructor: (@selector, @definition) ->
+	constructor: (@selector, @definition, startingState) ->
 		@isOn = false
 		@chip = new Chip( @definition )
 
 		@isReady = false
 		@isHalted = false
-		@effectsEnabled = true
+		@effectsEnabled = false
 
 		@build()
 
@@ -14,67 +16,120 @@ class CircuitBoard
 			@isReady = true
 			@togglePower()
 
+			if startingState?
+				@chip.reset()
+				parts = startingState.replace( '[memory]', '' ).split( '[registers]' )
+
+				if parts.length isnt 2
+					return
+
+				try
+					[memory, registers] = parts
+					memory = memory.replace /\s+/g, ' '
+					registers = registers.replace /\s+/g, ' '
+					
+					@uploadCode( memory )
+
+					for registerVal in registers.split( ' ' )
+						registerVal = registerVal.replace /\s+/g, ''
+
+						if registerVal isnt ''
+							parts = registerVal.split '='
+							if parts.length isnt 2
+								continue
+
+							[name, value] = parts
+							@chip.updateRegister name, parseInt(value)
+				catch error
+					console.log error
+
 		@chip.onUpdate (state, action, args) =>
 			if not @isOn then return
 
-			@currentState = state
+			@handleUpdate state, action, args
 
-			switch action
-				when 'ringBell'
-					@ringBell()
-					@updateRings state.numBellRings
-				when 'print', 'printASCII'
-					@output.text state.output
-					#console.log state.output
+		@chip.onRunUpdate (state) =>
+			@updateAll state
 
-				when 'setRegister'
-					[register, value] = args
 
-					if register is 'IP'
-						@highlightCell value
+	handleUpdate: (state, action, args) ->
+		@currentState = state
 
-					$('#register-' + register).val @formatValue(value)
-				when 'setMemory'
-					[address, value] = args
-					
-					$('#memory-' + address).val @formatValue(value)
-				when 'nextStep'
-					[pipelineStep, executionStep] = args
-					
-					@updateIP state
-					@updateLEDs pipelineStep, executionStep
+		switch action
+			when 'ringBell'
+				@ringBell()
+				@updateRings state.numBellRings
+			when 'print', 'printASCII'
+				@updateOutput state
 
-					@animateStep pipelineStep
+			when 'setRegister'
+				[register, value] = args
 
-					cycleText = executionStep + ' execution cycle'
-					cycleText += 's' if (executionStep != 1)
-					@cycleLabel.text cycleText
+				if register is 'IP'
+					@highlightCell value
 
-				when 'halt'
-					@isHalted = true
-					@haltedStatus.text 'Halted'
+				$('#register-' + register).val @formatValue(value)
+			when 'setMemory'
+				[address, value] = args
+				
+				$('#memory-' + address).val @formatValue(value)
+			when 'nextStep'
+				[pipelineStep, executionStep] = args
+				
+				@updateIP state
+				@updateLEDs pipelineStep, executionStep
 
-					# all LEDs on when halted
-					$('.ledOn').removeClass( 'ledOn' )
-					@ledOverlay.hide()
-					$('.board-led').hide().stop true, true
+				@animateStep pipelineStep
 
-					@fetchLED.addClass 'ledOn'
-					@incrementLED.addClass 'ledOn'
-					@executeLED.addClass 'ledOn'
-					
-					self = @
-					flash = (led) ->
-						$(led).fadeOut 'slow', ->
-							if self.isHalted
-								$(this).fadeIn 'fast', -> flash $(this)
+				cycleText = executionStep + ' execution cycle'
+				cycleText += 's' if (executionStep != 1)
+				@cycleLabel.text cycleText
 
-					$('.board-led').fadeIn 'fast', -> flash this
+			when 'halt'
+				@halt()
 
-					console.log 'halted'
+			else
+				@updateAll state
 
-				else
-					@updateAll state
+	updateAll: (state) ->
+		if not state?
+			return
+
+		@currentState = state
+
+		@updateLEDs state.pipelineStep, state.executionStep
+		@updateIP state
+
+		for cell in [0...state.memory.length]
+			memoryValue = state.memory[cell]
+			$('#memory-' + cell).val @formatValue(memoryValue)
+
+		if @properties?
+			for reg in @properties.registerNames
+				regIndex = @properties.registerIndexLookup[reg]
+				regValue = state.registers[regIndex]
+				$('#register-' + reg).val @formatValue(regValue)
+
+		@updateRings state.numBellRings
+
+		@updateOutput state
+
+		cycleText = state.executionStep + ' execution cycle'
+		cycleText += 's' if (state.executionStep != 1)
+		@cycleLabel.text cycleText
+
+		if state.isHalted
+			@halt()
+
+	updateOutput: (state) ->
+		textLimit = 8194
+
+		if (state.output.length > textLimit) and @chip.isSpeedRunning
+			# nothing
+		else if (state.output.length > textLimit)
+			@output.text ' ... \n' + state.output[(state.output.length-textLimit)...(state.output.length)]
+		else
+			@output.text state.output
 
 	updateRings: (bellRings) ->
 		if bellRings is 1
@@ -102,8 +157,11 @@ class CircuitBoard
 		$('.execute-highlight').removeClass 'execute-highlight'
 		$('.increment-highlight').removeClass 'increment-highlight'
 
+	areEffectsEnabled: ->
+		return (@effectsEnabled or !@chip.isRunning) and !@chip.isSpeedRunning
+
 	animateStep: (pipelineStep) ->
-		if !@effectsEnabled then return
+		if !@areEffectsEnabled() then return
 
 		@clearHighlights()
 
@@ -133,12 +191,17 @@ class CircuitBoard
 					targetCell.val ''
 					targetPos = targetCell.position()
 
+					if @chip.isRunning
+						animateSpeed = @chip.runSpeed
+					else
+						animateSpeed = 'slow'
+
 					@movingValue.animate {
 						left: targetPos.left + 'px'
 						top: targetPos.top + 'px'
 						width: targetCell.width() + 'px'
 						padding: targetCell.css('padding')
-					}, 'slow', =>
+					}, animateSpeed, =>
 						if @movingValue
 							@movingValue.remove()
 						@clearHighlights()
@@ -155,7 +218,11 @@ class CircuitBoard
 	updateLEDs: (pipelineStep, executionStep) ->
 		if @isHalted then return
 
-		$('.board-led').hide().stop true, true
+		if !@areEffectsEnabled()
+			$('.board-led').show()
+		else
+			$('.board-led').hide().stop true, true
+			
 
 		$('.ledOn').removeClass( 'ledOn' )
 		@ledOverlay
@@ -175,33 +242,11 @@ class CircuitBoard
 				@executeLED.addClass 'ledOn'
 				@ledOverlay.addClass 'execute'
 
-		$('.board-led').fadeIn 'fast'
+		if @areEffectsEnabled()
+			$('.board-led').fadeIn 'fast'
+
 
 	formatValue: (value) -> parseInt(value).toString(16).toUpperCase()
-
-	updateAll: (state) ->
-		@updateLEDs state.pipelineStep, state.executionStep
-		@updateIP state
-
-		for cell in [0...state.memory.length]
-			memoryValue = state.memory[cell]
-			$('#memory-' + cell).val @formatValue(memoryValue)
-
-		if @properties?
-			for reg in @properties.registerNames
-				regIndex = @properties.registerIndexLookup[reg]
-				regValue = state.registers[regIndex]
-				$('#register-' + reg).val @formatValue(regValue)
-
-		@output.text state.output
-
-		@updateRings state.numBellRings
-
-		cycleText = state.executionStep + ' execution cycle'
-		cycleText += 's' if (state.executionStep != 1)
-		@cycleLabel.text cycleText
-
-		console.log state
 
 	togglePower: ->
 		if not @isReady then return
@@ -227,19 +272,45 @@ class CircuitBoard
 		if @isOn
 			@isHalted = false
 			@haltedStatus.text ''
+
 			@clearHighlights()
 			@chip.reset()
 
 	run: -> 
 		if @isOn and not @isHalted
-			@effectsEnabled = false
 			@clearHighlights()
 			@chip.run()
 
+	speedRun: ->
+		if @isOn and not @isHalted
+			@clearHighlights()
+			@chip.speedRun()
+
 	step: ->
 		if @isOn and not @isHalted
-			@effectsEnabled = true
 			@chip.step()
+
+	halt: ->
+		@isHalted = true
+
+		@haltedStatus.text 'Halted'
+
+		# all LEDs on when halted
+		$('.ledOn').removeClass( 'ledOn' )
+		@ledOverlay.hide()
+		$('.board-led').hide().stop true, true
+
+		@fetchLED.addClass 'ledOn'
+		@incrementLED.addClass 'ledOn'
+		@executeLED.addClass 'ledOn'
+		
+		self = @
+		flash = (led) ->
+			$(led).fadeOut 'slow', ->
+				if self.isHalted
+					$(this).fadeIn 'fast', -> flash $(this)
+
+		$('.board-led').fadeIn 'fast', -> flash this
 
 	ringBell: ->
 		@bell.stop true, true
@@ -260,7 +331,7 @@ class CircuitBoard
 		unhoverCell = (cell) =>
 			@instructionHelp.text ''
 
-		$table = $('<table class="table table-bordered table-striped board-memory-table">')
+		$table = $('<table class="table table-bordered table-striped table-hover board-memory-table">')
 		$table.attr 'id', ('memory-table-page-' + pageNum)
 
 		cellNum = (numRows*numCols) * pageNum
@@ -362,7 +433,6 @@ class CircuitBoard
 
 		hoverRegister = (regInput) =>
 			if (regInput.attr 'id') is 'register-IP'
-				console.log val
 
 				val = parseInt regInput.val(), 16
 
@@ -381,9 +451,9 @@ class CircuitBoard
 			@instructionHelp.text ''
 
 
-		$refTable = $('<table class="table table-bordered">')
+		$refTable = $('<table class="table table-bordered table-hover">')
 
-		$reference = $('<div class="board-reference">').append $refTable
+		$reference = $('<div class="board-reference">').append( $('<h4>').text( properties.name + ' Instruction Set' ) ).append $refTable
 
 		$refTable.append(
 			$('<tr>')
@@ -411,6 +481,24 @@ class CircuitBoard
 
 		@toolbar = $('<div class="btn-toolbar board-toolbar">')
 
+		$sliderBox = $('<div class="board-speed-slider" style="margin-top: 12px; margin-right: 12px; float:right; width: 120px;">')
+
+		@slider = $('<div>').slider
+			value: (500-@chip.runSpeed) 
+			max: 500
+			min: 10
+			change: (event, ui) =>
+				value = (500 - ui.value)
+				@chip.runSpeed = value
+				if value > 200
+					@effectsEnabled = true
+				else
+					@effectsEnabled = false
+		
+
+		$sliderBox.append @slider
+
+
 		$groupA = $('<div class="btn-group">')
 		$groupB = $('<div class="btn-group">')
 		$groupC = $('<div class="btn-group">')
@@ -428,7 +516,6 @@ class CircuitBoard
 
 		$restoreBtn.click =>
 			if @savedState?
-				console.log @savedState
 				@chip.setState @savedState
 
 		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download-alt"> ') ).tooltip
@@ -437,6 +524,8 @@ class CircuitBoard
 
 		$uploadBtn.click =>
 			@editor.dialog "open"
+			$('#code-tab').tab('show')
+			@editor.find('textarea').focus()
 
 		$resetBtn = $('<div class="btn btn-small">').html( $('<i class="icon-off">') ).tooltip
 			title: 'Reset'
@@ -445,35 +534,41 @@ class CircuitBoard
 		$resetBtn.click =>
 			@reset()
 
-		###
-		$helpBtn = $('<div class="btn btn-small">').html( $('<i class="icon-question-sign">') ).tooltip
-			title: 'Instruction Set Reference'
+
+		$speedRunButton = $('<span class="btn btn-small">').html( $('<i class="icon-forward">') ).tooltip
+			title: 'Fast Run'
 			placement: 'bottom'
 
-		$helpBtn.click =>
-		###
+		$speedRunButton.click =>
+			@speedRun()
+
+		$outputBtn = $('<div class="btn btn-small">').html( $('<i class="icon-file">') ).tooltip
+			title: 'Full Output'
+			placement: 'bottom'
+
+		$outputBtn.click =>
+			document.location = 'data:Application/octet-stream,' + encodeURIComponent(@currentState.output)
 
 		$groupA
-			.append( $saveBtn )
-			.append( $restoreBtn )
 			.append( $uploadBtn )
+		#	.append( $outputBtn )
 
 		$groupB
+			.append( $saveBtn )
+			.append( $restoreBtn )
 			.append( $resetBtn )
 
-		###
+		
 		$groupC
-			.append( $helpBtn )
-		###
+			.append( $speedRunButton )
+		
 
 		@toolbar
 			.append( $groupA )
 			.append( $groupB )
-
-		###
 			.append( $groupC )
-		###
 
+		@chipBox.append $sliderBox
 		@chipBox.append @toolbar
 
 		$memoryContainer = $('<div class="board-memory-container">')
@@ -547,8 +642,10 @@ class CircuitBoard
 		@chipBox.append @status
 		@chipBox.append @hiddenTables
 
-	uploadCode: ->
-		code = @codeBox.val()
+	uploadCode: (code=null) ->
+
+		if not code?
+			code = @codeBox.val()
 
 		instructions = (code.replace /\s+/g, ',').split ','
 
@@ -574,7 +671,6 @@ class CircuitBoard
 			executionStep: 0
 		}
 
-		console.log memory
 		@chip.setState @currentState
 
 
@@ -582,7 +678,7 @@ class CircuitBoard
 	build: ->
 		@board = $(@selector)
 
-		$codeTab = $('<li class="active"><a href="#code" class="editor-tab">Code</a></li>')
+		$codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>')
 		$refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>')
 
 		$tabs = $('<ul class="nav nav-tabs">')
@@ -591,7 +687,7 @@ class CircuitBoard
 
 		@codeBox = $('<textarea class="board-code">')
 
-		@hexOption = $('<input name="use-hex" type="checkbox" checked="checked">')
+		@hexOption = $('<input name="use-hex" type="checkbox">')
 		@editor = $('<div class="board-editor" title="Upload Code">')
 
 
@@ -599,7 +695,7 @@ class CircuitBoard
 		$editorTab
 			.append( @codeBox )
 			.append( '<br/>' )
-			.append( $('<label for="use-hex">').append(@hexOption).append( $('<span>').text ' Use Hexadecimal' ) )
+			.append( $('<label for="use-hex">').append(@hexOption).append( $('<span>').text ' Only Use Hexadecimal' ) )
 
 		@instructionReference = $('<div class="tab-pane" id="reference">')
 

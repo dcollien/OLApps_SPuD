@@ -5,7 +5,7 @@
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-1.8.0.min.js"></script>
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-ui-1.8.23.custom.min.js"></script>
 		<script src="./lib/bootstrap/js/bootstrap.min.js"></script>
-		
+
 
 		<script src="./src/spud.js"></script>
 
@@ -16,11 +16,27 @@
 		<link rel="stylesheet" type="text/css" href="./media/board.css">
 	</head>
 	<body>
-		<div style="width: 970px; border: 1px solid black">
+		<div style="width: 970px;">
 			<div id="spud"></div>
 		</div>
 
-<textarea id="definition">
+<textarea class="hide" id="startingState">
+[memory]
+
+7 7 7 7
+7 7 7 7
+7 7 7 7
+7 7 7 7
+
+[registers]
+
+IP=5
+IS=3
+R0=2
+R1=1
+</textarea>
+
+<textarea class="hide" id="definition">
 name: 4004
 memoryBitSize: 4
 numMemoryAddresses: 16
@@ -65,7 +81,10 @@ registerNames: IP, IS, R0, R1, SW
 </textarea>
 
 		<script>
-			$('#spud').spud( $('#definition').text() );
+			$('#spud').spud( {
+				definition: $('#definition').text(),
+				startingState: $('#startingState').text()
+			} );
 		</script>
 	</body>
 </html>

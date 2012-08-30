@@ -1,4 +1,4 @@
-var BrowserEmu, DelegateInstruction, Instruction, InterpretedInstruction, InterpretedProcessor, Interpreter, Processor, Processor4917, State, Symbol, SyntaxError, Token, Tokeniser, WorkerEmu, board, messageListener,
+var BrowserEmu, DelegateInstruction, Emu, Instruction, InterpretedInstruction, InterpretedProcessor, Interpreter, Processor, Processor4917, State, Symbol, SyntaxError, Token, Tokeniser, WorkerEmu, board, messageListener,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -290,41 +290,21 @@ State = (function() {
 BrowserEmu = (function() {
 
   function BrowserEmu() {
-    this.messageCallbacks = [];
-    this.maxCycles = 100;
+    this.emu = new Emu(this);
+    this.onmessage = function() {};
   }
 
-  BrowserEmu.prototype.defineProcessor = function(definition) {
-    var changeHandler,
-      _this = this;
-    changeHandler = function(event) {
-      return _this.send('update', event);
-    };
-    return this.processor = new InterpretedProcessor(definition, changeHandler);
-  };
-
   BrowserEmu.prototype.send = function(method, data) {
-    var callback, _i, _len, _ref, _results;
-    _ref = this.messageCallbacks;
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      callback = _ref[_i];
-      _results.push(callback({
-        data: JSON.stringify({
-          method: method,
-          data: data
-        })
-      }));
-    }
-    return _results;
-  };
-
-  BrowserEmu.prototype.onmessage = function(callback) {
-    return this.messageCallbacks.push(callback);
+    return this.onmessage({
+      data: JSON.stringify({
+        method: method,
+        data: data
+      })
+    });
   };
 
   BrowserEmu.prototype.postMessage = function(message) {
-    var address, data, dataObject, instruction, instructions, method, name, value, _i, _len, _ref;
+    var data, dataObject, method;
     try {
       dataObject = JSON.parse(message);
       method = dataObject.method;
@@ -333,6 +313,42 @@ BrowserEmu = (function() {
       method = message;
       data = null;
     }
+    return this.emu.handleMessage(method, data);
+  };
+
+  return BrowserEmu;
+
+})();
+
+Emu = (function() {
+
+  function Emu(connection) {
+    this.connection = connection;
+    this.maxCycles = 524288;
+    this.bufferSize = 32768;
+    this.eventCounter = 0;
+    this.isRunning = false;
+  }
+
+  Emu.prototype.defineProcessor = function(definition) {
+    var changeHandler,
+      _this = this;
+    changeHandler = function(event) {
+      if (_this.isRunning) {
+        _this.eventCounter += 1;
+        if (_this.eventCounter > _this.bufferSize) {
+          _this.connection.send('runUpdate', event.state);
+          return _this.eventCounter = 0;
+        }
+      } else {
+        return _this.connection.send('update', event);
+      }
+    };
+    return this.processor = new InterpretedProcessor(definition, changeHandler);
+  };
+
+  Emu.prototype.handleMessage = function(method, data) {
+    var address, instruction, instructions, name, value, _i, _len, _ref;
     switch (method) {
       case 'init':
         this.processor = null;
@@ -346,7 +362,7 @@ BrowserEmu = (function() {
             ipIncrement: instruction.ipIncrement
           });
         }
-        return this.send('ready', {
+        return this.connection.send('ready', {
           name: this.processor.name,
           memoryBitSize: this.processor.memoryBitSize,
           numMemoryAddresses: this.processor.numMemoryAddresses,
@@ -378,33 +394,33 @@ BrowserEmu = (function() {
         break;
       case 'run':
         if (this.processor != null) {
+          this.isRunning = true;
           this.processor.run(this.maxCycles);
           if (!this.processor.state.isHalted) {
-            return this.send('report', 'Maximum number of execution cycles exceeded. Execution paused.');
+            this.connection.send('report', {
+              message: 'Maximum number of execution cycles exceeded. Execution paused.',
+              reason: 'runPaused'
+            });
           }
+          this.isRunning = false;
+          return this.connection.send('runUpdate', this.processor.state.toObject());
         }
     }
   };
 
-  return BrowserEmu;
+  return Emu;
 
 })();
 
-if (!(window.document != null)) {
-  board = WorkerEmu();
-  messageListener = function(event) {
-    var payload;
-    payload = JSON.parse(event);
-    return board.receive(payload.method, payload.data);
-  };
-  self.addEventListener('message', messageListener, false);
-}
-
 WorkerEmu = (function() {
 
-  function WorkerEmu() {}
+  function WorkerEmu() {
+    this.emu = new Emu(this);
+  }
 
-  WorkerEmu.prototype.receive = function(method, data) {};
+  WorkerEmu.prototype.receive = function(method, data) {
+    return this.emu.handleMessage(method, data);
+  };
 
   WorkerEmu.prototype.send = function(method, data) {
     var payload;
@@ -418,6 +434,22 @@ WorkerEmu = (function() {
   return WorkerEmu;
 
 })();
+
+if (!(typeof window !== "undefined" && window !== null) || !(window.document != null)) {
+  board = new WorkerEmu();
+  messageListener = function(event) {
+    var payload;
+    try {
+      payload = JSON.parse(event.data);
+    } catch (e) {
+      payload = {
+        method: event.data
+      };
+    }
+    return board.receive(payload.method, payload.data);
+  };
+  self.addEventListener('message', messageListener, false);
+}
 
 DelegateInstruction = (function(_super) {
 

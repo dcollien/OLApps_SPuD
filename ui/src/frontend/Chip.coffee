@@ -1,10 +1,19 @@
 class Chip
 	constructor: (definition) ->
+		@runSpeed = 50
+		@isRunning = false
+		@isSpeedRunning = false
+
 		@readyCallbacks = []
 		@updateCallbacks = []
+		@runUpdateCallbacks = []
 
 		if @supportsWorkers()
 			# init web worker script
+
+			if console?
+				console.log 'Using Worker'
+
 			@worker = new Worker( './src/spudEmu.js' )
 			@init definition
 		else
@@ -14,16 +23,16 @@ class Chip
 				@init definition
 
 	init: (definition) ->
-		@worker.onmessage (event) => 
+		@worker.onmessage = (event) =>
 			receivedData = (JSON.parse event.data)
 			@receive receivedData.method, receivedData.data
-
+		
 		@worker.postMessage JSON.stringify( {
 				method: 'init'
 				data: definition
 			} )
 
-	supportsWorkers: -> false #(typeof window.Worker) is 'function'
+	supportsWorkers: -> (typeof window.Worker) is 'function'
 
 	onReady: (callback) ->
 		@readyCallbacks.push callback
@@ -31,11 +40,28 @@ class Chip
 	onUpdate: (callback) ->
 		@updateCallbacks.push callback
 
+	onRunUpdate: (callback) ->
+		@runUpdateCallbacks.push callback
+
 	reset: -> @worker.postMessage 'reset'
 
 	step: -> @worker.postMessage 'step'
 
-	run: -> @worker.postMessage 'run'
+	run: -> 
+		if @isRunning
+			@isRunning = false
+		else
+			@isRunning = true
+			@runUpdate()
+
+	runUpdate: ->
+		@step()
+		if @isRunning
+			setTimeout (=> @runUpdate()), @runSpeed
+
+	speedRun: -> 
+		@isSpeedRunning = true
+		@worker.postMessage 'run'
 
 	setState: (state) ->
 		@worker.postMessage JSON.stringify( {
@@ -66,15 +92,24 @@ class Chip
 			when 'ready'
 				for callback in @readyCallbacks
 					callback data
+			when 'runUpdate'
+				for callback in @runUpdateCallbacks
+					callback data
 			when 'update'
 				state = data.state
 				action = data.action
 				args = data.arguments
 
+				if data.state.isHalted
+					@isRunning = false
+					@isSpeedRunning = false
+
 				for callback in @updateCallbacks
 					callback state, action, args
 			when 'report'
-				alert data
+				if data.reason is 'runPaused'
+					@isSpeedRunning = false
+					alert data.message
 			else
 				# no idea
 
