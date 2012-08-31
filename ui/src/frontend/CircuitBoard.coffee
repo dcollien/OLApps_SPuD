@@ -1,7 +1,7 @@
 # todo: inspector in its own class
 
 class CircuitBoard
-	constructor: (@selector, @definition, startingState, @audio) ->
+	constructor: (@selector, @definition, @startingState, @audio) ->
 
 		@soundEnabled = false
 		if @audio?
@@ -21,32 +21,7 @@ class CircuitBoard
 			@isReady = true
 			@togglePower()
 
-			if startingState?
-				@chip.reset()
-				parts = startingState.replace( '[memory]', '' ).split( '[registers]' )
-
-				if parts.length isnt 2
-					return
-
-				try
-					[memory, registers] = parts
-					memory = memory.replace /\s+/g, ' '
-					registers = registers.replace /\s+/g, ' '
-					
-					@uploadCode( memory )
-
-					for registerVal in registers.split( ' ' )
-						registerVal = registerVal.replace /\s+/g, ''
-
-						if registerVal isnt ''
-							parts = registerVal.split '='
-							if parts.length isnt 2
-								continue
-
-							[name, value] = parts
-							@chip.updateRegister name, parseInt(value)
-				catch error
-					console.log error
+			@loadFromStartingState()
 
 		@chip.onUpdate (state, action, args) =>
 			if not @isOn then return
@@ -55,6 +30,36 @@ class CircuitBoard
 
 		@chip.onRunUpdate (state) =>
 			@updateAll state
+
+	loadFromStartingState: () ->
+		startingState = @startingState
+
+		if startingState?
+			@chip.reset()
+			parts = startingState.replace( '[memory]', '' ).split( '[registers]' )
+
+			if parts.length isnt 2
+				return
+
+			try
+				[memory, registers] = parts
+				memory = memory.replace /\s+/g, ' '
+				registers = registers.replace /\s+/g, ' '
+				
+				@uploadCode( memory )
+
+				for registerVal in registers.split( ' ' )
+					registerVal = registerVal.replace /\s+/g, ''
+
+					if registerVal isnt ''
+						parts = registerVal.split '='
+						if parts.length isnt 2
+							continue
+
+						[name, value] = parts
+						@chip.updateRegister name, parseInt(value)
+			catch error
+				console.log error
 
 	playSound: (sound) ->
 		return if not @soundEnabled
@@ -299,6 +304,15 @@ class CircuitBoard
 
 			setTimeout (=> @backgroundSound @audio.hum), 500
 
+	restart: ->
+		if @isOn
+			@isHalted = false
+			@haltedStatus.text ''
+
+			@clearHighlights()
+			@loadFromStartingState()
+			
+
 	reset: ->
 		if @isOn
 			@isHalted = false
@@ -422,8 +436,19 @@ class CircuitBoard
 
 		numAddresses = properties.numMemoryAddresses
 
-		numRows = Math.min 8, (Math.floor (Math.sqrt numAddresses))
-		numCols = Math.min 8, (numAddresses/numRows)
+		minCols = 4
+		maxCols = 8
+		if properties.memoryBitSize > 8
+			maxCols = 4
+
+		if numAddresses < minCols
+			maxCols = numAddresses
+			minCols = numAddresses
+		
+		numCols = Math.max minCols, (Math.min maxCols, Math.floor(numAddresses/4))
+		
+		 
+		numRows = Math.min 8, (numAddresses/numCols)
 		
 		pages = numAddresses / (numRows*numCols)
 
@@ -517,6 +542,9 @@ class CircuitBoard
 		@toolbar = $('<div class="btn-toolbar board-toolbar">')
 
 		$sliderBox = $('<div class="board-speed-slider" style="margin-top: 12px; margin-right: 12px; float:right; width: 120px;">')
+		$sliderBox.tooltip
+			title: 'Speed'
+			placement: 'bottom'
 
 		@slider = $('<div>').slider
 			value: (500-@chip.runSpeed) 
@@ -553,7 +581,7 @@ class CircuitBoard
 			if @savedState?
 				@chip.setState @savedState
 
-		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download-alt"> ') ).tooltip
+		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download-alt">') ).append( ' Upload' ).tooltip
 			title: 'Upload Program'
 			placement: 'bottom'
 
@@ -563,12 +591,10 @@ class CircuitBoard
 			@editor.find('textarea').focus()
 
 		$resetBtn = $('<div class="btn btn-small">').html( $('<i class="icon-off">') ).tooltip
-			title: 'Reset'
+			title: 'Reset to zero'
 			placement: 'bottom'
 
-		$resetBtn.click =>
-			@reset()
-
+		$resetBtn.click => @reset()
 
 		$speedRunButton = $('<span class="btn btn-small">').html( $('<i class="icon-forward">') ).tooltip
 			title: 'Fast Run'
@@ -781,12 +807,12 @@ class CircuitBoard
 
 		@resetButton.tooltip {
 			placement: 'left'
-			title: 'Reset to zero'
+			title: 'Reset to starting state'
 		}
 
 		@runButton.tooltip {
 			placement: 'left'
-			title: 'Run until halted'
+			title: 'Run/pause execution'
 		}
 
 		@stepButton.tooltip {
@@ -796,7 +822,12 @@ class CircuitBoard
 
 		@powerSwitch.click => @togglePower()
 
-		@resetButton.click => @reset()
+		@resetButton.click => 
+			if @startingState?
+				@restart()
+			else
+				@reset()
+
 		@runButton.click   => @run()
 		@stepButton.click  => @step()
 

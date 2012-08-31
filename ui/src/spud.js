@@ -168,6 +168,7 @@ CircuitBoard = (function() {
     var _this = this;
     this.selector = selector;
     this.definition = definition;
+    this.startingState = startingState;
     this.audio = audio;
     this.soundEnabled = false;
     if (this.audio != null) {
@@ -180,42 +181,10 @@ CircuitBoard = (function() {
     this.effectsEnabled = false;
     this.build();
     this.chip.onReady(function(event) {
-      var memory, name, parts, registerVal, registers, value, _i, _len, _ref, _results;
       _this.buildInspector(event);
       _this.isReady = true;
       _this.togglePower();
-      if (startingState != null) {
-        _this.chip.reset();
-        parts = startingState.replace('[memory]', '').split('[registers]');
-        if (parts.length !== 2) {
-          return;
-        }
-        try {
-          memory = parts[0], registers = parts[1];
-          memory = memory.replace(/\s+/g, ' ');
-          registers = registers.replace(/\s+/g, ' ');
-          _this.uploadCode(memory);
-          _ref = registers.split(' ');
-          _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            registerVal = _ref[_i];
-            registerVal = registerVal.replace(/\s+/g, '');
-            if (registerVal !== '') {
-              parts = registerVal.split('=');
-              if (parts.length !== 2) {
-                continue;
-              }
-              name = parts[0], value = parts[1];
-              _results.push(_this.chip.updateRegister(name, parseInt(value)));
-            } else {
-              _results.push(void 0);
-            }
-          }
-          return _results;
-        } catch (error) {
-          return console.log(error);
-        }
-      }
+      return _this.loadFromStartingState();
     });
     this.chip.onUpdate(function(state, action, args) {
       if (!_this.isOn) {
@@ -227,6 +196,43 @@ CircuitBoard = (function() {
       return _this.updateAll(state);
     });
   }
+
+  CircuitBoard.prototype.loadFromStartingState = function() {
+    var memory, name, parts, registerVal, registers, startingState, value, _i, _len, _ref, _results;
+    startingState = this.startingState;
+    if (startingState != null) {
+      this.chip.reset();
+      parts = startingState.replace('[memory]', '').split('[registers]');
+      if (parts.length !== 2) {
+        return;
+      }
+      try {
+        memory = parts[0], registers = parts[1];
+        memory = memory.replace(/\s+/g, ' ');
+        registers = registers.replace(/\s+/g, ' ');
+        this.uploadCode(memory);
+        _ref = registers.split(' ');
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          registerVal = _ref[_i];
+          registerVal = registerVal.replace(/\s+/g, '');
+          if (registerVal !== '') {
+            parts = registerVal.split('=');
+            if (parts.length !== 2) {
+              continue;
+            }
+            name = parts[0], value = parts[1];
+            _results.push(this.chip.updateRegister(name, parseInt(value)));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
+      } catch (error) {
+        return console.log(error);
+      }
+    }
+  };
 
   CircuitBoard.prototype.playSound = function(sound) {
     if (!this.soundEnabled) {
@@ -487,6 +493,15 @@ CircuitBoard = (function() {
     }
   };
 
+  CircuitBoard.prototype.restart = function() {
+    if (this.isOn) {
+      this.isHalted = false;
+      this.haltedStatus.text('');
+      this.clearHighlights();
+      return this.loadFromStartingState();
+    }
+  };
+
   CircuitBoard.prototype.reset = function() {
     if (this.isOn) {
       this.isHalted = false;
@@ -621,7 +636,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.buildMemoryPages = function(properties, $memoryContainer) {
-    var $pageLink, $pagination, $paginationList, $table, clickPagination, numAddresses, numCols, numRows, pageNum, pages, _i,
+    var $pageLink, $pagination, $paginationList, $table, clickPagination, maxCols, minCols, numAddresses, numCols, numRows, pageNum, pages, _i,
       _this = this;
     clickPagination = function(link) {
       var page;
@@ -634,8 +649,17 @@ CircuitBoard = (function() {
       return false;
     };
     numAddresses = properties.numMemoryAddresses;
-    numRows = Math.min(8, Math.floor(Math.sqrt(numAddresses)));
-    numCols = Math.min(8, numAddresses / numRows);
+    minCols = 4;
+    maxCols = 8;
+    if (properties.memoryBitSize > 8) {
+      maxCols = 4;
+    }
+    if (numAddresses < minCols) {
+      maxCols = numAddresses;
+      minCols = numAddresses;
+    }
+    numCols = Math.max(minCols, Math.min(maxCols, Math.floor(numAddresses / 4)));
+    numRows = Math.min(8, numAddresses / numCols);
     pages = numAddresses / (numRows * numCols);
     this.visibleTable = this.buildMemoryTable(0, numRows, numCols, properties);
     this.hiddenTables = $('<div class="hide">');
@@ -710,6 +734,10 @@ CircuitBoard = (function() {
     this.chipName.append($('<span>').text(properties.name));
     this.toolbar = $('<div class="btn-toolbar board-toolbar">');
     $sliderBox = $('<div class="board-speed-slider" style="margin-top: 12px; margin-right: 12px; float:right; width: 120px;">');
+    $sliderBox.tooltip({
+      title: 'Speed',
+      placement: 'bottom'
+    });
     this.slider = $('<div>').slider({
       value: 500 - this.chip.runSpeed,
       max: 500,
@@ -745,7 +773,7 @@ CircuitBoard = (function() {
         return _this.chip.setState(_this.savedState);
       }
     });
-    $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-download-alt"> ')).tooltip({
+    $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-download-alt">')).append(' Upload').tooltip({
       title: 'Upload Program',
       placement: 'bottom'
     });
@@ -755,7 +783,7 @@ CircuitBoard = (function() {
       return _this.editor.find('textarea').focus();
     });
     $resetBtn = $('<div class="btn btn-small">').html($('<i class="icon-off">')).tooltip({
-      title: 'Reset',
+      title: 'Reset to zero',
       placement: 'bottom'
     });
     $resetBtn.click(function() {
@@ -923,11 +951,11 @@ CircuitBoard = (function() {
     });
     this.resetButton.tooltip({
       placement: 'left',
-      title: 'Reset to zero'
+      title: 'Reset to starting state'
     });
     this.runButton.tooltip({
       placement: 'left',
-      title: 'Run until halted'
+      title: 'Run/pause execution'
     });
     this.stepButton.tooltip({
       placement: 'bottom',
@@ -937,7 +965,11 @@ CircuitBoard = (function() {
       return _this.togglePower();
     });
     this.resetButton.click(function() {
-      return _this.reset();
+      if (_this.startingState != null) {
+        return _this.restart();
+      } else {
+        return _this.reset();
+      }
     });
     this.runButton.click(function() {
       return _this.run();
