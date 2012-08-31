@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Automarker Admin</title>
+		<link rel="stylesheet" href="/common/bootstrap/css/bootstrap.min.css" type="text/css" media="screen" charset="utf-8">
+		<script src="/common/jquery.min.js"></script>
+		{{&app_init_js}}
+	</head>
+	<body>
+		
+		{{#error}}<br/> <br/><span class="alert">{{error}}</span><br/> <br/>{{/error}}
+
+		<div class="container">
+			<form method="post" class="form-horizontal">
+				<fieldset>
+					{{&csrf_token}}
+					
+					<legend>Specification</legend>
+
+					<div class="control-group">
+						<label class="control-label" for="definition">Definition</label>
+						<div class="controls">
+							<textarea name="definition" id="definition" style="width: 320px; height: 240px;">{{definition}}</textarea>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label" for="startingState">Starting State</label>
+						<div class="controls">
+							<textarea name="startingState" id="startingState" style="width: 320px; height: 240px;">{{startingState}}</textarea>
+						</div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="btn btn-primary">Save changes</button>
+					</div>
+				</fieldset>
+			</form>
+		</div>
+	</body>
+</html>
