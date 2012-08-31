@@ -2,15 +2,15 @@
 <html lang="en">
 	<head>
 		<title>SPμD Emulator</title>
-		<script type="text/javascript" src="{{ media('lib/jquery-ui/js/jquery-1.8.0.min.js') }}"></script>
-		<script type="text/javascript" src="{{ media('lib/jquery-ui/js/jquery-ui-1.8.23.custom.min.js') }}"></script>
-		<script type="text/javascript" src="{{ media('lib/bootstrap/js/bootstrap.min.js') }}"></script>
+		<script type="text/javascript" src="/common/jquery.min.js"></script>
+		<script type="text/javascript" src="/common/jquery-ui/js/jquery-ui.min.js"></script>
+		<script type="text/javascript" src="/common/bootstrap/js/bootstrap.min.js"></script>
 
 		<script src="{{ media('js/spud.js') }}"></script>
 
-		<link rel="stylesheet" type="text/css" href="{{ media('lib/bootstrap/css/bootstrap.css') }}">
+		<link rel="stylesheet" type="text/css" href="/common/bootstrap/css/bootstrap.css">
+		<link type="text/css" href="/common/jquery-ui/css/jquery-ui.css" rel="stylesheet" />
 
-		<link type="text/css" href="{{ media('lib/jquery-ui/css/custom-theme/jquery-ui-1.8.23.custom.css') }}" rel="stylesheet" />
 		<link rel="stylesheet" type="text/css" href="{{ media('assets/fonts.css') }}">
 		<link rel="stylesheet" type="text/css" href="{{ media('assets/board.css') }}">
 
@@ -29,7 +29,7 @@
 					$('#spud').spud( {
 						definition: data.definition,
 						startingState: data.startingState,
-						workerScript: '{{ media('js/spudEmu.js') }}',
+						workerScript: "{{ media('js/spudEmu.js') }}",
 						audio: {
 							hum: "{{ media('assets/hum.mp3') }}",
 							powerup: "{{ media('assets/powerup.mp3') }}",
