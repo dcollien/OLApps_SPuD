@@ -1,3 +1,8 @@
+body {
+	margin: 0px;
+	padding: 0px;
+}
+
 .board-bg {
 	position: relative;
 	background-image: url('BoardOff.png');
@@ -188,7 +193,7 @@
 	left: 54px;
 	top: 422px;
 
-	width: 506px;
+	width: 504px;
 	height: 92px;
 
 	margin-top: 4px;
@@ -205,9 +210,9 @@
 .board-chipbox {
 	position: absolute;
 	top: 20px;
-	left: 570px;
+	left: 557px;
 
-	width: 380px;
+	width: 375px;
 	min-height: 300px;
 
 	-webkit-border-radius: 10px;

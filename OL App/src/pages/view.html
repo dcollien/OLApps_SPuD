@@ -17,11 +17,24 @@
 		{{ app_init_js }}
 	</head>
 	<body>
-		<div style="width: 970px;">
+		<div style="width: 940px; height: 640px;">
 			<div id="spud"></div>
 		</div>
 
 		<script>
+			var audio = {
+				hum: "{{ media('assets/hum.mp3') }}",
+				powerup: "{{ media('assets/powerup.mp3') }}",
+				powerdown: "{{ media('assets/powerdown.mp3') }}",
+				ding: "{{ media('assets/ding.mp3') }}"
+			};
+
+			// preload
+			new Audio( audio.hum );
+			new Audio( audio.powerup );
+			new Audio( audio.powerdown );
+			new Audio( audio.ding );
+
 			$.ajax( './getSetup', {
 				type: 'GET',
 				dataType: 'json',
@@ -29,14 +42,11 @@
 					$('#spud').spud( {
 						definition: data.definition,
 						startingState: data.startingState,
-						workerScript: "{{ media('js/spudEmu.js') }}",
-						audio: {
-							hum: "{{ media('assets/hum.mp3') }}",
-							powerup: "{{ media('assets/powerup.mp3') }}",
-							powerdown: "{{ media('assets/powerdown.mp3') }}",
-							ding: "{{ media('assets/ding.mp3') }}"
-						}
+						workerScript: "./spudEmu.js",
+						audio: audio
 					} );
+
+					window.app.resize( 940, 700 );
 				},
 				error: function( ) {
 				}
