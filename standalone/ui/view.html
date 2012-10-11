@@ -122,7 +122,7 @@ registerNames: IP, IS, R0, R1, SW
 				alert( 'Save: ' + JSON.stringify(saveObject) );
 				state = JSON.stringify(saveObject);
 			};
-			
+
 			var loadFunc = function(callback) {
 				alert( 'Load' );
 				
@@ -148,18 +148,18 @@ registerNames: IP, IS, R0, R1, SW
 				var comment;
 				var correct = true;
 				for (i = 0; i != marks.length; i++) {
-					comment += '== ' + tests[i].name + ' == \n';
+					comment += '== ' + tests[i].name + ' == \\n';
 
 					if (!marks[i].completed) {
-						comment += '* **' + marks[i].comment + '**\n';
+						comment += '* **' + marks[i].comment + '**\\n';
 						correct = false;
 					} else {
-						comment += '* ' + marks[i].comment + '\n';
+						comment += '* ' + marks[i].comment + '\\n';
 					}
 				}
 
 				if (correct) {
-					comment += '\n\n**All Tests Passed**\n';
+					comment += '\\n\\n**All Tests Passed**\\n';
 					alert( "Awesome" );
 				}
 
