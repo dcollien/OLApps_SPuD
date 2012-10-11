@@ -1,14 +1,16 @@
 # todo: inspector in its own class
 
 class CircuitBoard
-	constructor: (@selector, @definition, workerScript, @startingState, @audio) ->
+	constructor: (@selector, @definition, @workerScript, @startingState, @audio, @saveHandler, @loadHandler) ->
 
 		@soundEnabled = false
-		if @audio?
+		if @audio? and buzz.isMP3Supported()
 			@soundEnabled = true
+		else
+			@audio = {}
 
 		@isOn = false
-		@chip = new Chip( @definition, workerScript )
+		@chip = new Chip( @definition, @workerScript )
 
 		@isReady = false
 		@isHalted = false
@@ -17,11 +19,12 @@ class CircuitBoard
 		@build()
 
 		@chip.onReady (event) =>
-			@buildInspector event
-			@isReady = true
-			@togglePower()
+			if not @isReady
+				@buildInspector event
+				@isReady = true
+				@togglePower()
 
-			@loadFromStartingState()
+				@loadFromStartingState()
 
 		@chip.onUpdate (state, action, args) =>
 			if not @isOn then return
@@ -30,6 +33,9 @@ class CircuitBoard
 
 		@chip.onRunUpdate (state) =>
 			@updateAll state
+
+		@chip.onReport (report) =>
+			alert report.message
 
 	loadFromStartingState: () ->
 		startingState = @startingState
@@ -63,23 +69,24 @@ class CircuitBoard
 
 	playSound: (sound) ->
 		return if not @soundEnabled
-
-		if @playing?
-			@playing.remove()
-
-		@playing = $('<embed style="height:0" loop="false" autostart="true" hidden="true"/>').attr 'src', sound
-		@playing.appendTo 'body'
+		# TODO
+		console.log "PLAY SOUND"
 
 	backgroundSound: (sound) ->
 		return if not @soundEnabled
+		@bgSounds = @bgSounds or []
+		@bgSounds.push sound
+		console.log "PLAY BG SOUND"
+		# TODO
 
-		if @bgSound?
-			@bgSound.remove()
+	stopBackgroundSounds: ->
+		for sound in @bgSounds
+			#TODO
+			console.log "STOP"
+		@bgSounds = []
 
-
-		@bgSound = $('<embed style="height:0" loop="true" autostart="true" hidden="true"/>').attr 'src', sound
-		@bgSound.appendTo 'body'
-
+	automark: (preConditions, postConditions, callback) ->
+		Automarker.mark(@definition, @workerScript, @currentState, preConditions, postConditions, callback)
 
 	handleUpdate: (state, action, args) ->
 		@currentState = state
@@ -159,6 +166,8 @@ class CircuitBoard
 			@output.text ' ... \n' + state.output[(state.output.length-textLimit)...(state.output.length)]
 		else
 			@output.text state.output
+
+		@output.text @output.text().split('').join(' ')
 
 	updateRings: (bellRings) ->
 		if bellRings is 1
@@ -292,7 +301,7 @@ class CircuitBoard
 			@playSound @audio.powerdown
 			@output.fadeOut( )
 
-			setTimeout (=> @bgSound.remove()), 500
+			setTimeout (=> @stopBackgroundSounds()), 500
 		else
 			@background.addClass 'on'
 			@isOn = true
@@ -300,6 +309,7 @@ class CircuitBoard
 			@reset()
 
 			@playSound @audio.powerup
+
 			@output.fadeIn( )
 
 			setTimeout (=> @backgroundSound @audio.hum), 500
@@ -541,7 +551,7 @@ class CircuitBoard
 
 		@toolbar = $('<div class="btn-toolbar board-toolbar">')
 
-		$sliderBox = $('<div class="board-speed-slider" style="margin-top: 12px; margin-right: 12px; float:right; width: 120px;">')
+		$sliderBox = $('<div class="board-speed-slider" style="margin-top: 8px; margin-right: 12px; float:right; width: 120px;">')
 		$sliderBox.tooltip
 			title: 'Speed'
 			placement: 'bottom'
@@ -572,18 +582,27 @@ class CircuitBoard
 
 		$saveBtn.click =>
 			@savedState = @currentState
+			if @saveHandler?
+				@saveHandler @savedState
+
 
 		$restoreBtn = $('<div class="btn btn-small">').html( $('<i class="icon-upload">') ).tooltip
 			title: 'Restore State'
 			placement: 'bottom'
 
 		$restoreBtn.click =>
-			if @savedState?
+			if not @savedState?
+				if @loadHandler?
+					@loadHandler (state) ->
+						if state
+							@savedState = state
+							@chip.setState @savedState
+			else
 				@chip.setState @savedState
 
-		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download-alt">') ).append( ' Upload' ).tooltip
-			title: 'Upload Program'
-			placement: 'bottom'
+			
+
+		$uploadBtn = $('<div class="btn btn-small">').html( $('<i class="icon-edit">') ).append( ' Edit Program Code' )
 
 		$uploadBtn.click =>
 			@editor.dialog "open"
@@ -629,8 +648,8 @@ class CircuitBoard
 			.append( $groupB )
 			.append( $groupC )
 
-		@chipBox.append $sliderBox
-		@chipBox.append @toolbar
+		@header.append $sliderBox
+		@header.append @toolbar
 
 		$memoryContainer = $('<div class="board-memory-container">')
 
@@ -739,6 +758,8 @@ class CircuitBoard
 	build: ->
 		@board = $(@selector)
 
+		console.log 'BUILD'
+
 		$codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>')
 		$refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>')
 
@@ -795,14 +816,15 @@ class CircuitBoard
 		@chipBox = $('<div class="board-chipbox arrow_box">')
 		@chipBox.hide()
 
-		@chipName.tooltip {
-			placement: 'bottom'
-			title: 'View Memory and Registers'
-		}
-
 		@ledOverlay.tooltip {
 			placement: 'top'
 			title: 'Next step to perform'
+		}
+
+		###
+		@chipName.tooltip {
+			placement: 'bottom'
+			title: 'View Memory and Registers'
 		}
 
 		@resetButton.tooltip {
@@ -819,6 +841,7 @@ class CircuitBoard
 			placement: 'bottom'
 			title: 'Perform a single step'
 		}
+		###
 
 		@powerSwitch.click => @togglePower()
 
@@ -836,8 +859,11 @@ class CircuitBoard
 				@chipBox.fadeToggle()
 
 		#@bell.click => @ringBell()
+		@header = $('<div style="width:540px; margin-left: 40px; margin-bottom: -10px; margin-top: 6px;">')
 
-		@board.html @background
+		@board.html ''
+		@board.append @header
+		@board.append @background
 		@board.append @editor
 
 		@background
@@ -871,8 +897,9 @@ class CircuitBoard
 
 		$('button').addClass 'btn'
 
-		$('.editor-tab').click -> 
-			$(this).tab( 'show' )
+		$('.editor-tab').click ->
+			console.log $('#reference')
+			$(this).tab 'show'
 			return false
 
 

@@ -1,4 +1,121 @@
-var Chip, CircuitBoard;
+var Automarker, Chip, CircuitBoard;
+
+Automarker = {
+  /*
+  	[
+  		{
+  			type: 'memoryUpdate' or 'registerUpdate' or 'clearRegisters'
+  			key: registerName or memoryAddress,
+  			value: value to store
+  		}
+  	]
+  */
+  loadPreconditions: function(preConditions, chip, processor) {
+    var preCondition, reg, _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = preConditions.length; _i < _len; _i++) {
+      preCondition = preConditions[_i];
+      console.log("setting", preCondition);
+      if (preCondition.type === 'memoryUpdate') {
+        _results.push(chip.updateMemory(preCondition.key, preCondition.value));
+      } else if (preCondition.type === 'registerUpdate') {
+        _results.push(chip.updateRegister(preCondition.key, preCondition.value));
+      } else if (preCondition.type === 'clearRegisters') {
+        _results.push((function() {
+          var _j, _len2, _ref, _results2;
+          _ref = processor.registerNames;
+          _results2 = [];
+          for (_j = 0, _len2 = _ref.length; _j < _len2; _j++) {
+            reg = _ref[_j];
+            _results2.push(chip.updateRegister(reg, 0));
+          }
+          return _results2;
+        })());
+      } else {
+        _results.push(void 0);
+      }
+    }
+    return _results;
+  },
+  /*
+  	[
+  		{
+  			type: 'function' or 'register' or 'memory' or 'output' or 'numRings'
+  			parameter: registerName or memoryAddress
+  			match: value
+  			check: function(state) ...
+  			correctComment: "Test passed",
+  			incorrectComment: "You didn't pass this test"
+  		}
+  	]
+  */
+  checkPostConditions: function(postConditions, state, processor) {
+    var comment, correct, postCondition, registerIndex, _i, _len;
+    correct = true;
+    comment = "";
+    for (_i = 0, _len = postConditions.length; _i < _len; _i++) {
+      postCondition = postConditions[_i];
+      console.log('checking', postCondition);
+      switch (postCondition.type) {
+        case 'function':
+          correct = postCondition.check(state);
+          break;
+        case 'register':
+          registerIndex = processor.registerIndexLookup[postCondition.parameter];
+          correct = state.registers[registerIndex] === postCondition.match;
+          break;
+        case 'memory':
+          correct = state.memory[postCondition.parameter] === postCondition.match;
+          break;
+        case 'output':
+          correct = ("" + state.output).trim() === ("" + postCondition.match).trim();
+          break;
+        case 'numRings':
+          correct = state.numBellRings === postCondition.match;
+      }
+      if (correct) {
+        comment += postCondition.correctComment + '\n';
+      } else {
+        comment += postCondition.incorrectComment + '\n';
+        break;
+      }
+    }
+    return {
+      completed: correct,
+      comment: comment
+    };
+  },
+  mark: function(definition, workerScript, program, preConditions, postConditions, callback) {
+    var chip,
+      _this = this;
+    chip = new Chip(definition, workerScript);
+    return chip.onReady(function(processor) {
+      var done;
+      done = false;
+      console.log('ready');
+      chip.setState(program);
+      Automarker.loadPreconditions(preConditions, chip, processor);
+      chip.onReport(function(report) {
+        if (report.reason === 'runPaused') {
+          callback({
+            completed: false,
+            comment: "Execution timed out"
+          });
+          return done = true;
+        }
+      });
+      chip.onRunUpdate(function(state) {
+        var result;
+        if (state.isHalted && !done) {
+          result = Automarker.checkPostConditions(postConditions, state, processor);
+          return callback(result);
+        }
+      });
+      console.log("running");
+      return chip.speedRun();
+    });
+  }
+};
 
 Chip = (function() {
 
@@ -10,6 +127,7 @@ Chip = (function() {
     this.readyCallbacks = [];
     this.updateCallbacks = [];
     this.runUpdateCallbacks = [];
+    this.reportCallbacks = [];
     if (this.supportsWorkers()) {
       if (typeof console !== "undefined" && console !== null) {
         console.log('Using Worker');
@@ -51,6 +169,10 @@ Chip = (function() {
 
   Chip.prototype.onRunUpdate = function(callback) {
     return this.runUpdateCallbacks.push(callback);
+  };
+
+  Chip.prototype.onReport = function(callback) {
+    return this.reportCallbacks.push(callback);
   };
 
   Chip.prototype.reset = function() {
@@ -113,7 +235,7 @@ Chip = (function() {
   };
 
   Chip.prototype.receive = function(method, data) {
-    var action, args, callback, state, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results, _results1, _results2;
+    var action, args, callback, state, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _results, _results2, _results3, _results4;
     switch (method) {
       case 'ready':
         _ref = this.readyCallbacks;
@@ -125,35 +247,39 @@ Chip = (function() {
         return _results;
         break;
       case 'runUpdate':
-        _ref1 = this.runUpdateCallbacks;
-        _results1 = [];
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          callback = _ref1[_j];
-          _results1.push(callback(data));
+        _ref2 = this.runUpdateCallbacks;
+        _results2 = [];
+        for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+          callback = _ref2[_j];
+          _results2.push(callback(data));
         }
-        return _results1;
+        return _results2;
         break;
       case 'update':
         state = data.state;
         action = data.action;
-        args = data["arguments"];
+        args = data.arguments;
         if (data.state.isHalted) {
           this.isRunning = false;
           this.isSpeedRunning = false;
         }
-        _ref2 = this.updateCallbacks;
-        _results2 = [];
-        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-          callback = _ref2[_k];
-          _results2.push(callback(state, action, args));
+        _ref3 = this.updateCallbacks;
+        _results3 = [];
+        for (_k = 0, _len3 = _ref3.length; _k < _len3; _k++) {
+          callback = _ref3[_k];
+          _results3.push(callback(state, action, args));
         }
-        return _results2;
+        return _results3;
         break;
       case 'report':
-        if (data.reason === 'runPaused') {
-          this.isSpeedRunning = false;
-          return alert(data.message);
+        if (data.reason === 'runPaused') this.isSpeedRunning = false;
+        _ref4 = this.reportCallbacks;
+        _results4 = [];
+        for (_l = 0, _len4 = _ref4.length; _l < _len4; _l++) {
+          callback = _ref4[_l];
+          _results4.push(callback(data));
         }
+        return _results4;
         break;
     }
   };
@@ -164,36 +290,44 @@ Chip = (function() {
 
 CircuitBoard = (function() {
 
-  function CircuitBoard(selector, definition, workerScript, startingState, audio) {
+  function CircuitBoard(selector, definition, workerScript, startingState, audio, saveHandler, loadHandler) {
     var _this = this;
     this.selector = selector;
     this.definition = definition;
+    this.workerScript = workerScript;
     this.startingState = startingState;
     this.audio = audio;
+    this.saveHandler = saveHandler;
+    this.loadHandler = loadHandler;
     this.soundEnabled = false;
-    if (this.audio != null) {
+    if ((this.audio != null) && buzz.isMP3Supported()) {
       this.soundEnabled = true;
+    } else {
+      this.audio = {};
     }
     this.isOn = false;
-    this.chip = new Chip(this.definition, workerScript);
+    this.chip = new Chip(this.definition, this.workerScript);
     this.isReady = false;
     this.isHalted = false;
     this.effectsEnabled = false;
     this.build();
     this.chip.onReady(function(event) {
-      _this.buildInspector(event);
-      _this.isReady = true;
-      _this.togglePower();
-      return _this.loadFromStartingState();
+      if (!_this.isReady) {
+        _this.buildInspector(event);
+        _this.isReady = true;
+        _this.togglePower();
+        return _this.loadFromStartingState();
+      }
     });
     this.chip.onUpdate(function(state, action, args) {
-      if (!_this.isOn) {
-        return;
-      }
+      if (!_this.isOn) return;
       return _this.handleUpdate(state, action, args);
     });
     this.chip.onRunUpdate(function(state) {
       return _this.updateAll(state);
+    });
+    this.chip.onReport(function(report) {
+      return alert(report.message);
     });
   }
 
@@ -203,9 +337,7 @@ CircuitBoard = (function() {
     if (startingState != null) {
       this.chip.reset();
       parts = startingState.replace('[memory]', '').split('[registers]');
-      if (parts.length !== 2) {
-        return;
-      }
+      if (parts.length !== 2) return;
       try {
         memory = parts[0], registers = parts[1];
         memory = memory.replace(/\s+/g, ' ');
@@ -218,9 +350,7 @@ CircuitBoard = (function() {
           registerVal = registerVal.replace(/\s+/g, '');
           if (registerVal !== '') {
             parts = registerVal.split('=');
-            if (parts.length !== 2) {
-              continue;
-            }
+            if (parts.length !== 2) continue;
             name = parts[0], value = parts[1];
             _results.push(this.chip.updateRegister(name, parseInt(value)));
           } else {
@@ -235,25 +365,29 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.playSound = function(sound) {
-    if (!this.soundEnabled) {
-      return;
-    }
-    if (this.playing != null) {
-      this.playing.remove();
-    }
-    this.playing = $('<embed style="height:0" loop="false" autostart="true" hidden="true"/>').attr('src', sound);
-    return this.playing.appendTo('body');
+    if (!this.soundEnabled) return;
+    return console.log("PLAY SOUND");
   };
 
   CircuitBoard.prototype.backgroundSound = function(sound) {
-    if (!this.soundEnabled) {
-      return;
+    if (!this.soundEnabled) return;
+    this.bgSounds = this.bgSounds || [];
+    this.bgSounds.push(sound);
+    return console.log("PLAY BG SOUND");
+  };
+
+  CircuitBoard.prototype.stopBackgroundSounds = function() {
+    var sound, _i, _len, _ref;
+    _ref = this.bgSounds;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      sound = _ref[_i];
+      console.log("STOP");
     }
-    if (this.bgSound != null) {
-      this.bgSound.remove();
-    }
-    this.bgSound = $('<embed style="height:0" loop="true" autostart="true" hidden="true"/>').attr('src', sound);
-    return this.bgSound.appendTo('body');
+    return this.bgSounds = [];
+  };
+
+  CircuitBoard.prototype.automark = function(preConditions, postConditions, callback) {
+    return Automarker.mark(this.definition, this.workerScript, this.currentState, preConditions, postConditions, callback);
   };
 
   CircuitBoard.prototype.handleUpdate = function(state, action, args) {
@@ -268,9 +402,7 @@ CircuitBoard = (function() {
         return this.updateOutput(state);
       case 'setRegister':
         register = args[0], value = args[1];
-        if (register === 'IP') {
-          this.highlightCell(value);
-        }
+        if (register === 'IP') this.highlightCell(value);
         return $('#register-' + register).val(this.formatValue(value));
       case 'setMemory':
         address = args[0], value = args[1];
@@ -281,9 +413,7 @@ CircuitBoard = (function() {
         this.updateLEDs(pipelineStep, executionStep);
         this.animateStep(pipelineStep);
         cycleText = executionStep + ' execution cycle';
-        if (executionStep !== 1) {
-          cycleText += 's';
-        }
+        if (executionStep !== 1) cycleText += 's';
         return this.cycleLabel.text(cycleText);
       case 'halt':
         return this.halt();
@@ -293,21 +423,19 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.updateAll = function(state) {
-    var cell, cycleText, memoryValue, reg, regIndex, regValue, _i, _j, _len, _ref, _ref1;
-    if (!(state != null)) {
-      return;
-    }
+    var cell, cycleText, memoryValue, reg, regIndex, regValue, _i, _len, _ref, _ref2;
+    if (!(state != null)) return;
     this.currentState = state;
     this.updateLEDs(state.pipelineStep, state.executionStep);
     this.updateIP(state);
-    for (cell = _i = 0, _ref = state.memory.length; 0 <= _ref ? _i < _ref : _i > _ref; cell = 0 <= _ref ? ++_i : --_i) {
+    for (cell = 0, _ref = state.memory.length; 0 <= _ref ? cell < _ref : cell > _ref; 0 <= _ref ? cell++ : cell--) {
       memoryValue = state.memory[cell];
       $('#memory-' + cell).val(this.formatValue(memoryValue));
     }
     if (this.properties != null) {
-      _ref1 = this.properties.registerNames;
-      for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
-        reg = _ref1[_j];
+      _ref2 = this.properties.registerNames;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        reg = _ref2[_i];
         regIndex = this.properties.registerIndexLookup[reg];
         regValue = state.registers[regIndex];
         $('#register-' + reg).val(this.formatValue(regValue));
@@ -316,25 +444,20 @@ CircuitBoard = (function() {
     this.updateRings(state.numBellRings);
     this.updateOutput(state);
     cycleText = state.executionStep + ' execution cycle';
-    if (state.executionStep !== 1) {
-      cycleText += 's';
-    }
+    if (state.executionStep !== 1) cycleText += 's';
     this.cycleLabel.text(cycleText);
-    if (state.isHalted) {
-      return this.halt();
-    }
+    if (state.isHalted) return this.halt();
   };
 
   CircuitBoard.prototype.updateOutput = function(state) {
     var textLimit;
     textLimit = 8194;
-    if ((state.output.length > textLimit) && this.chip.isSpeedRunning) {
-
-    } else if (state.output.length > textLimit) {
-      return this.output.text(' ... \n' + state.output.slice(state.output.length - textLimit, state.output.length));
+    if ((state.output.length > textLimit) && this.chip.isSpeedRunning) {} else if (state.output.length > textLimit) {
+      this.output.text(' ... \n' + state.output.slice(state.output.length - textLimit, state.output.length));
     } else {
-      return this.output.text(state.output);
+      this.output.text(state.output);
     }
+    return this.output.text(this.output.text().split('').join(' '));
   };
 
   CircuitBoard.prototype.updateRings = function(bellRings) {
@@ -377,13 +500,9 @@ CircuitBoard = (function() {
   CircuitBoard.prototype.animateStep = function(pipelineStep) {
     var animateSpeed, currentCell, pos, targetCell, targetPos, targetValue,
       _this = this;
-    if (!this.areEffectsEnabled()) {
-      return;
-    }
+    if (!this.areEffectsEnabled()) return;
     this.clearHighlights();
-    if (this.movingValue) {
-      this.movingValue.stop(true, true).remove();
-    }
+    if (this.movingValue) this.movingValue.stop(true, true).remove();
     switch (pipelineStep) {
       case 0:
         return $('#register-IS').addClass('execute-highlight');
@@ -414,9 +533,7 @@ CircuitBoard = (function() {
             width: targetCell.width() + 'px',
             padding: targetCell.css('padding')
           }, animateSpeed, function() {
-            if (_this.movingValue) {
-              _this.movingValue.remove();
-            }
+            if (_this.movingValue) _this.movingValue.remove();
             _this.clearHighlights();
             targetCell.val(targetValue);
             return targetCell.addClass('fetch-highlight');
@@ -431,9 +548,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.updateLEDs = function(pipelineStep, executionStep) {
-    if (this.isHalted) {
-      return;
-    }
+    if (this.isHalted) return;
     if (!this.areEffectsEnabled()) {
       $('.board-led').show();
     } else {
@@ -454,9 +569,7 @@ CircuitBoard = (function() {
         this.executeLED.addClass('ledOn');
         this.ledOverlay.addClass('execute');
     }
-    if (this.areEffectsEnabled()) {
-      return $('.board-led').fadeIn('fast');
-    }
+    if (this.areEffectsEnabled()) return $('.board-led').fadeIn('fast');
   };
 
   CircuitBoard.prototype.formatValue = function(value) {
@@ -465,9 +578,7 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.togglePower = function() {
     var _this = this;
-    if (!this.isReady) {
-      return;
-    }
+    if (!this.isReady) return;
     if (this.isOn) {
       this.background.removeClass('on');
       this.isOn = false;
@@ -478,7 +589,7 @@ CircuitBoard = (function() {
       this.playSound(this.audio.powerdown);
       this.output.fadeOut();
       return setTimeout((function() {
-        return _this.bgSound.remove();
+        return _this.stopBackgroundSounds();
       }), 500);
     } else {
       this.background.addClass('on');
@@ -526,9 +637,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.step = function() {
-    if (this.isOn && !this.isHalted) {
-      return this.chip.step();
-    }
+    if (this.isOn && !this.isHalted) return this.chip.step();
   };
 
   CircuitBoard.prototype.halt = function() {
@@ -558,9 +667,7 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.ringBell = function() {
     var _this = this;
-    if (this.areEffectsEnabled()) {
-      this.playSound(this.audio.ding);
-    }
+    if (this.areEffectsEnabled()) this.playSound(this.audio.ding);
     this.bell.stop(true, true);
     this.bell.addClass('ringing');
     return this.bell.fadeOut(800, function() {
@@ -570,7 +677,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.buildMemoryTable = function(pageNum, numRows, numCols, properties) {
-    var $cell, $cellInput, $row, $table, cellNum, changeMemory, hoverCell, i, j, unhoverCell, _i, _j, _ref,
+    var $cell, $cellInput, $row, $table, cellNum, changeMemory, hoverCell, i, j, unhoverCell, _ref,
       _this = this;
     changeMemory = function(address, value) {
       return _this.chip.updateMemory(address, parseInt(value, 16));
@@ -589,9 +696,9 @@ CircuitBoard = (function() {
     $table = $('<table class="table table-bordered table-striped table-hover board-memory-table">');
     $table.attr('id', 'memory-table-page-' + pageNum);
     cellNum = (numRows * numCols) * pageNum;
-    for (i = _i = 0; 0 <= numRows ? _i < numRows : _i > numRows; i = 0 <= numRows ? ++_i : --_i) {
+    for (i = 0; 0 <= numRows ? i < numRows : i > numRows; 0 <= numRows ? i++ : i--) {
       $row = $('<tr>');
-      for (j = _j = 0, _ref = numCols + 1; 0 <= _ref ? _j < _ref : _j > _ref; j = 0 <= _ref ? ++_j : --_j) {
+      for (j = 0, _ref = numCols + 1; 0 <= _ref ? j < _ref : j > _ref; 0 <= _ref ? j++ : j--) {
         if (j === 0) {
           $cell = $('<th>');
           $cell.text('0x' + this.formatValue(cellNum));
@@ -618,7 +725,6 @@ CircuitBoard = (function() {
             							title: ""+cellNum
             						}
             */
-
             $cellInput.mouseout(function() {
               return unhoverCell($(this));
             });
@@ -636,7 +742,7 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.buildMemoryPages = function(properties, $memoryContainer) {
-    var $pageLink, $pagination, $paginationList, $table, clickPagination, maxCols, minCols, numAddresses, numCols, numRows, pageNum, pages, _i,
+    var $pageLink, $pagination, $paginationList, $table, clickPagination, maxCols, minCols, numAddresses, numCols, numRows, pageNum, pages,
       _this = this;
     clickPagination = function(link) {
       var page;
@@ -651,9 +757,7 @@ CircuitBoard = (function() {
     numAddresses = properties.numMemoryAddresses;
     minCols = 4;
     maxCols = 8;
-    if (properties.memoryBitSize > 8) {
-      maxCols = 4;
-    }
+    if (properties.memoryBitSize > 8) maxCols = 4;
     if (numAddresses < minCols) {
       maxCols = numAddresses;
       minCols = numAddresses;
@@ -672,7 +776,7 @@ CircuitBoard = (function() {
       return clickPagination(this);
     });
     $paginationList.append($('<li class="active">').append($pageLink));
-    for (pageNum = _i = 1; 1 <= pages ? _i < pages : _i > pages; pageNum = 1 <= pages ? ++_i : --_i) {
+    for (pageNum = 1; 1 <= pages ? pageNum < pages : pageNum > pages; 1 <= pages ? pageNum++ : pageNum--) {
       $table = this.buildMemoryTable(pageNum, numRows, numCols, properties);
       this.hiddenTables.append($table);
       $pageLink = $('<a href="#">').text(pageNum);
@@ -686,13 +790,11 @@ CircuitBoard = (function() {
     this.tableBox = $('<center>');
     this.tableBox.html(this.visibleTable);
     $memoryContainer.append(this.tableBox);
-    if (pages > 1) {
-      return $memoryContainer.append($pagination);
-    }
+    if (pages > 1) return $memoryContainer.append($pagination);
   };
 
   CircuitBoard.prototype.buildInspector = function(properties) {
-    var $cell, $groupA, $groupB, $groupC, $headers, $memoryContainer, $outputBtn, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $sliderBox, $speedRunButton, $table, $uploadBtn, changeRegister, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, unhoverRegister, _i, _j, _k, _len, _len1, _ref, _ref1, _ref2,
+    var $cell, $groupA, $groupB, $groupC, $headers, $memoryContainer, $outputBtn, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $sliderBox, $speedRunButton, $table, $uploadBtn, changeRegister, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, unhoverRegister, _i, _j, _len, _len2, _ref, _ref2, _ref3,
       _this = this;
     this.properties = properties;
     changeRegister = function(name, value) {
@@ -733,7 +835,7 @@ CircuitBoard = (function() {
     this.instructionReference.html($reference);
     this.chipName.append($('<span>').text(properties.name));
     this.toolbar = $('<div class="btn-toolbar board-toolbar">');
-    $sliderBox = $('<div class="board-speed-slider" style="margin-top: 12px; margin-right: 12px; float:right; width: 120px;">');
+    $sliderBox = $('<div class="board-speed-slider" style="margin-top: 8px; margin-right: 12px; float:right; width: 120px;">');
     $sliderBox.tooltip({
       title: 'Speed',
       placement: 'bottom'
@@ -762,21 +864,28 @@ CircuitBoard = (function() {
       placement: 'bottom'
     });
     $saveBtn.click(function() {
-      return _this.savedState = _this.currentState;
+      _this.savedState = _this.currentState;
+      if (_this.saveHandler != null) return _this.saveHandler(_this.savedState);
     });
     $restoreBtn = $('<div class="btn btn-small">').html($('<i class="icon-upload">')).tooltip({
       title: 'Restore State',
       placement: 'bottom'
     });
     $restoreBtn.click(function() {
-      if (_this.savedState != null) {
+      if (!(_this.savedState != null)) {
+        if (_this.loadHandler != null) {
+          return _this.loadHandler(function(state) {
+            if (state) {
+              this.savedState = state;
+              return this.chip.setState(this.savedState);
+            }
+          });
+        }
+      } else {
         return _this.chip.setState(_this.savedState);
       }
     });
-    $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-download-alt">')).append(' Upload').tooltip({
-      title: 'Upload Program',
-      placement: 'bottom'
-    });
+    $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-edit">')).append(' Edit Program Code');
     $uploadBtn.click(function() {
       _this.editor.dialog("open");
       $('#code-tab').tab('show');
@@ -807,8 +916,8 @@ CircuitBoard = (function() {
     $groupB.append($saveBtn).append($restoreBtn).append($resetBtn);
     $groupC.append($speedRunButton);
     this.toolbar.append($groupA).append($groupB).append($groupC);
-    this.chipBox.append($sliderBox);
-    this.chipBox.append(this.toolbar);
+    this.header.append($sliderBox);
+    this.header.append(this.toolbar);
     $memoryContainer = $('<div class="board-memory-container">');
     this.buildMemoryPages(properties, $memoryContainer);
     this.chipBox.append($memoryContainer);
@@ -819,9 +928,9 @@ CircuitBoard = (function() {
     maxRowLength = 6;
     maxRowLength = Math.min(maxRowLength, properties.registerNames.length);
     rowLength = 0;
-    _ref1 = properties.registerNames;
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      registerName = _ref1[_j];
+    _ref2 = properties.registerNames;
+    for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+      registerName = _ref2[_j];
       if (rowLength >= maxRowLength) {
         rowLength = 0;
         $table.append($headers);
@@ -855,7 +964,7 @@ CircuitBoard = (function() {
       rowLength += 1;
     }
     if (rowLength !== 0) {
-      for (i = _k = 0, _ref2 = maxRowLength - rowLength; 0 <= _ref2 ? _k < _ref2 : _k > _ref2; i = 0 <= _ref2 ? ++_k : --_k) {
+      for (i = 0, _ref3 = maxRowLength - rowLength; 0 <= _ref3 ? i < _ref3 : i > _ref3; 0 <= _ref3 ? i++ : i--) {
         $headers.append($('<td>'));
         $registers.append($('<td>'));
       }
@@ -877,12 +986,8 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.uploadCode = function(code) {
     var instruction, instructions, memory, val, _i, _len;
-    if (code == null) {
-      code = null;
-    }
-    if (!(code != null)) {
-      code = this.codeBox.val();
-    }
+    if (code == null) code = null;
+    if (!(code != null)) code = this.codeBox.val();
     instructions = (code.replace(/\s+/g, ',')).split(',');
     memory = [];
     for (_i = 0, _len = instructions.length; _i < _len; _i++) {
@@ -893,9 +998,7 @@ CircuitBoard = (function() {
       } else {
         val = parseInt(instruction);
       }
-      if (instruction !== '' && !(isNaN(val))) {
-        memory.push(val);
-      }
+      if (instruction !== '' && !(isNaN(val))) memory.push(val);
     }
     this.currentState = {
       memory: memory,
@@ -913,6 +1016,7 @@ CircuitBoard = (function() {
     var $codeTab, $editorTab, $refTab, $tabContent, $tabs, uploadCode,
       _this = this;
     this.board = $(this.selector);
+    console.log('BUILD');
     $codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>');
     $refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>');
     $tabs = $('<ul class="nav nav-tabs">').append($codeTab).append($refTab);
@@ -941,26 +1045,31 @@ CircuitBoard = (function() {
     this.chipName = $('<div class="board-chip">');
     this.chipBox = $('<div class="board-chipbox arrow_box">');
     this.chipBox.hide();
-    this.chipName.tooltip({
-      placement: 'bottom',
-      title: 'View Memory and Registers'
-    });
     this.ledOverlay.tooltip({
       placement: 'top',
       title: 'Next step to perform'
     });
-    this.resetButton.tooltip({
-      placement: 'left',
-      title: 'Reset to starting state'
-    });
-    this.runButton.tooltip({
-      placement: 'left',
-      title: 'Run/pause execution'
-    });
-    this.stepButton.tooltip({
-      placement: 'bottom',
-      title: 'Perform a single step'
-    });
+    /*
+    		@chipName.tooltip {
+    			placement: 'bottom'
+    			title: 'View Memory and Registers'
+    		}
+    
+    		@resetButton.tooltip {
+    			placement: 'left'
+    			title: 'Reset to starting state'
+    		}
+    
+    		@runButton.tooltip {
+    			placement: 'left'
+    			title: 'Run/pause execution'
+    		}
+    
+    		@stepButton.tooltip {
+    			placement: 'bottom'
+    			title: 'Perform a single step'
+    		}
+    */
     this.powerSwitch.click(function() {
       return _this.togglePower();
     });
@@ -978,11 +1087,12 @@ CircuitBoard = (function() {
       return _this.step();
     });
     this.chipName.click(function() {
-      if (_this.isOn) {
-        return _this.chipBox.fadeToggle();
-      }
+      if (_this.isOn) return _this.chipBox.fadeToggle();
     });
-    this.board.html(this.background);
+    this.header = $('<div style="width:540px; margin-left: 40px; margin-bottom: -10px; margin-top: 6px;">');
+    this.board.html('');
+    this.board.append(this.header);
+    this.board.append(this.background);
     this.board.append(this.editor);
     this.background.append(this.powerSwitch).append(this.bell).append(this.bellOverlay).append(this.fetchLED).append(this.incrementLED).append(this.executeLED).append(this.resetButton).append(this.runButton).append(this.stepButton).append(this.chipName).append(this.output).append(this.ledOverlay).append(this.chipBox);
     uploadCode = function() {
@@ -1004,6 +1114,7 @@ CircuitBoard = (function() {
     });
     $('button').addClass('btn');
     return $('.editor-tab').click(function() {
+      console.log($('#reference'));
       $(this).tab('show');
       return false;
     });
@@ -1015,12 +1126,19 @@ CircuitBoard = (function() {
 
 $.fn.extend({
   spud: function() {
-    var definition, options, opts, self;
+    var callback, definition, options, opts, postConditions, preConditions, self;
     self = $.fn.spud;
     switch (arguments[0]) {
       case 'setDefinition':
         definition = arguments[1];
         return $(this);
+      case 'automark':
+        preConditions = arguments[1];
+        postConditions = arguments[2];
+        callback = arguments[3];
+        return $(this).each(function(index, element) {
+          return self.automark(element, preConditions, postConditions, callback);
+        });
       default:
         options = arguments[0];
         if (typeof options === 'string') {
@@ -1040,7 +1158,12 @@ $.extend($.fn.spud, {
   defaultOptions: {},
   init: function(element, options) {
     var circuitBoard;
-    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.audio);
+    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.audio, options.onSave, options.onLoad);
     return $(element).data('spud', circuitBoard);
+  },
+  automark: function(element, preConditions, postConditions, callback) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    return circuitBoard.automark(preConditions, postConditions, callback);
   }
 });

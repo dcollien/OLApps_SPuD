@@ -99,7 +99,7 @@ class State
 	## Side effects
 	
 	print: (value) ->
-		@output += value + " "
+		@output += value + ""
 		@changeHandler (@eventFor 'print', value)
 	
 	printASCII: (value) ->

@@ -6,6 +6,13 @@ $.fn.extend
 			when 'setDefinition'
 				definition = arguments[1]
 				return $(@)
+			when 'automark'
+				preConditions = arguments[1]
+				postConditions = arguments[2]
+				callback = arguments[3]
+
+				return $(@).each (index, element) ->
+					self.automark element, preConditions, postConditions, callback
 
 			else
 				options = arguments[0]
@@ -24,5 +31,10 @@ $.extend $.fn.spud,
 	defaultOptions: {}
 
 	init: (element, options) ->
-		circuitBoard = new CircuitBoard( element, options.definition, options.workerScript, options.startingState, options.audio )
+		circuitBoard = new CircuitBoard( element, options.definition, options.workerScript, options.startingState, options.audio, options.onSave, options.onLoad )
 		$(element).data 'spud', circuitBoard
+
+	automark: (element, preConditions, postConditions, callback) ->
+		circuitBoard = $(element).data 'spud'
+		circuitBoard.automark preConditions, postConditions, callback
+

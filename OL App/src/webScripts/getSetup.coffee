@@ -1,4 +1,4 @@
-data = OpenLearning.page.getData( request.user )
+data = OpenLearning.page.getData( request.user ).data
 
 definition = """
 name: 4004

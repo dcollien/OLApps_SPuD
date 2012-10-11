@@ -5,6 +5,7 @@
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-1.8.0.min.js"></script>
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-ui-1.8.23.custom.min.js"></script>
 		<script type="text/javascript" src="./lib/bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="./lib/buzz.js"></script>
 
 		<script src="./src/spud.js"></script>
 
@@ -18,20 +19,23 @@
 		<div style="width: 970px;">
 			<div id="spud"></div>
 		</div>
+		<center>
+			<br/>
+			When you're happy with your solution, make sure your program is in its starting state, and then click:<br/>
+			<a href="#" class="btn btn-success" id="automark-button">Automark</a>
+			<br/>
+		</center>
 
 <textarea class="hide" id="startingState">
 [memory]
 
-7 7 7 7
-7 7 7 7
-7 7 7 7
-7 7 7 7
+7 7
 
 [registers]
 
-IP=5
+IP=0
 IS=3
-R0=2
+R0=0
 R1=1
 </textarea>
 
@@ -79,20 +83,118 @@ registerNames: IP, IS, R0, R1, SW
 15, 2: SW = [[IP-1]]; [[IP-1]] = R1; R1 = SW.
 </textarea>
 
+<textarea class="hide" id="tests">
+[
+	{
+		"name": "First Test",
+		"setup": [ { "type": "clearRegisters" } ],
+		"test": [
+			{
+				"type": "output",
+				"match": "00",
+				"correctComment": "Output Matches!",
+				"incorrectComment": "Output Doesn't Match"
+			},
+			{
+				"type": "register",
+				"parameter": "R0",
+				"match": 0,
+				"correctComment": "Register Matches!",
+				"incorrectComment": "Register Doesn't Match"
+			}
+		]
+	}
+]
+</textarea>
+
 		<script>
-			$(document).ready( function( ) {
+			var tests;
+			
+			try {
+				tests = JSON.parse( $('#tests').text() );
+			} catch (err) {
+				console.log( $('#tests').text() );
+				alert( err );
+			}
+
+			var state = "null";
+			var saveFunc = function(state) {
+				alert( 'Save: ' + JSON.stringify(state) );
+				state = JSON.stringify(state);
+			};
+
+			var loadFunc = function(callback) {
+				alert( 'Load' );
+				
+				callback(JSON.parse(state));
+			};
+
+			var loadApp = function(audio, onSave, onLoad) {
 				$('#spud').spud( {
 					definition: $('#definition').text(),
 					startingState: $('#startingState').text(),
 					workerScript: './src/spudEmu.js',
-					audio: {
-						hum: "./media/hum.mp3",
-						powerup: "./media/powerup.mp3",
-						powerdown: "./media/powerdown.mp3",
-						ding: "./media/ding.mp3"
-					}
+					audio: audio,
+					onSave: onSave,
+					onLoad: onLoad
 				} );
+			};
+
+			loadApp(undefined, saveFunc, loadFunc);
+
+			var saveMarks = function( marks ) {
+				var i;
+				var mark;
+				var comment;
+				var correct = true;
+				for (i = 0; i != marks.length; i++) {
+					comment += '== ' + tests[i].name + ' == \n';
+
+					if (!marks[i].completed) {
+						comment += '* **' + marks[i].comment + '**\n';
+						correct = false;
+					} else {
+						comment += '* ' + marks[i].comment + '\n';
+					}
+				}
+
+				if (correct) {
+					comment += '\n\n**All Tests Passed**\n';
+					alert( "Awesome" );
+				}
+
+			};
+
+			var runTest = function(tests, i, callback) {
+				$('#spud').spud('automark', tests[i].setup, tests[i].test, callback);
+			};
+
+			var runTests = function(tests, callback) {
+				var test;
+				var i = 0;
+				var results = [];
+
+				var nextTest = function(result) {
+					results.push(result);
+
+					console.log(tests[i], result);
+
+					i += 1;
+					if (result.completed && i < tests.length) {
+						runTest( tests, i, nextTest );
+					} else {
+						callback(results);
+					}
+				};
+
+				runTest( tests, i, nextTest );
+			};
+
+			$('#automark-button').click( function( ) {
+				runTests( tests, saveMarks );
+				return false;
 			} );
+
 		</script>
 	</body>
 </html>

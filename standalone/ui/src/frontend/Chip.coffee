@@ -7,6 +7,7 @@ class Chip
 		@readyCallbacks = []
 		@updateCallbacks = []
 		@runUpdateCallbacks = []
+		@reportCallbacks = []
 
 		if @supportsWorkers()
 			# init web worker script
@@ -42,6 +43,9 @@ class Chip
 
 	onRunUpdate: (callback) ->
 		@runUpdateCallbacks.push callback
+
+	onReport: (callback) ->
+		@reportCallbacks.push callback
 
 	reset: -> @worker.postMessage 'reset'
 
@@ -109,7 +113,10 @@ class Chip
 			when 'report'
 				if data.reason is 'runPaused'
 					@isSpeedRunning = false
-					alert data.message
+				
+				for callback in @reportCallbacks
+					callback data
+			
 			else
 				# no idea
 

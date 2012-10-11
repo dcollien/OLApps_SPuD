@@ -1,291 +1,7 @@
 var BrowserEmu, DelegateInstruction, Emu, Instruction, InterpretedInstruction, InterpretedProcessor, Interpreter, Processor, Processor4917, State, Symbol, SyntaxError, Token, Tokeniser, WorkerEmu, board, messageListener,
-  __hasProp = {}.hasOwnProperty,
+  __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
-  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-Instruction = (function() {
-
-  function Instruction(description, ipIncrement) {
-    this.description = description;
-    this.ipIncrement = ipIncrement;
-  }
-
-  Instruction.prototype.execute = function(state) {};
-
-  return Instruction;
-
-})();
-
-Processor = (function() {
-
-  function Processor(name, changeHandler) {
-    var exec, fetch, inc;
-    this.name = name;
-    this.memoryBitSize = 4;
-    this.registerBitSize = 4;
-    this.numMemoryAddresses = 16;
-    this.instructions = [];
-    this.setRegisterNames(['IP', 'IS']);
-    this.state = new State(this, changeHandler);
-    fetch = function(state) {
-      var instruction;
-      instruction = state.getMemory(state.getRegister('IP'));
-      return state.setRegister('IS', instruction);
-    };
-    inc = function(state) {
-      var instruction, instructionNum, ip, ipIncrement;
-      ip = state.getRegister('IP');
-      instructionNum = state.getRegister('IS');
-      instruction = null;
-      if (instructionNum < state.processor.instructions.length) {
-        instruction = state.processor.instructions[instructionNum];
-      }
-      ipIncrement = 1;
-      if (instruction) {
-        ipIncrement = instruction.ipIncrement;
-      }
-      return state.setRegister('IP', ip + ipIncrement);
-    };
-    exec = function(state) {
-      var instruction, instructionNum;
-      instructionNum = state.getRegister('IS');
-      instruction = null;
-      if (instructionNum < state.processor.instructions.length) {
-        instruction = state.processor.instructions[instructionNum];
-      }
-      if (instruction) {
-        return instruction.execute(state);
-      }
-    };
-    this.pipeline = [fetch, inc, exec];
-  }
-
-  Processor.prototype.step = function() {
-    if (this.state.isHalted) {
-      return;
-    }
-    this.pipeline[this.state.pipelineStep](this.state);
-    return this.state.nextStep(this.pipeline.length);
-  };
-
-  Processor.prototype.run = function(maxCycles) {
-    var cycle, maxSteps, _results;
-    cycle = 0;
-    maxSteps = maxCycles * this.state.processor.pipeline.length;
-    _results = [];
-    while ((cycle < maxSteps) && !this.state.isHalted) {
-      this.step();
-      _results.push(cycle += 1);
-    }
-    return _results;
-  };
-
-  Processor.prototype.setRegisterNames = function(names) {
-    var hasIP, hasIS, i, name, _i, _ref;
-    this.registerIndexLookup = {};
-    this.registerNames = names;
-    this.numRegisters = names.length;
-    hasIS = false;
-    hasIP = false;
-    for (i = _i = 0, _ref = this.numRegisters; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-      name = names[i];
-      this.registerIndexLookup[name] = i;
-      if (name === 'IP') {
-        hasIP = true;
-      }
-      if (name === 'IS') {
-        hasIS = true;
-      }
-    }
-    if (!(hasIS && hasIP)) {
-      throw new Error("Processor must have both IP and IS registers");
-    }
-  };
-
-  return Processor;
-
-})();
-
-State = (function() {
-
-  function State(processor, changeHandler) {
-    this.processor = processor;
-    this.changeHandler = changeHandler;
-    this.reset();
-    if (!this.changeHandler) {
-      this.changeHandler = function(event) {
-        if (console.log) {
-          return console.log(event);
-        }
-      };
-    }
-  }
-
-  State.prototype.eventFor = function() {
-    var args;
-    args = Array.prototype.slice.call(arguments);
-    return {
-      state: this.toObject(),
-      action: args[0],
-      "arguments": args.slice(1)
-    };
-  };
-
-  State.prototype.reset = function() {
-    var i, _i, _j, _ref, _ref1;
-    this.memory = [];
-    this.registers = [];
-    for (i = _i = 0, _ref = this.processor.numMemoryAddresses; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-      this.memory.push(0);
-    }
-    for (i = _j = 0, _ref1 = this.processor.numRegisters; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-      this.registers.push(0);
-    }
-    this.isHalted = false;
-    this.output = "";
-    this.numBellRings = 0;
-    this.pipelineStep = 0;
-    this.executionStep = 0;
-    return this.changeHandler(this.eventFor('reset'));
-  };
-
-  State.prototype.constrainRegister = function(value) {
-    var mask;
-    mask = (1 << this.processor.registerBitSize) - 1;
-    return value & mask;
-  };
-
-  State.prototype.constrainMemory = function(value) {
-    var mask;
-    mask = (1 << this.processor.memoryBitSize) - 1;
-    return value & mask;
-  };
-
-  State.prototype.constrainAddress = function(value) {
-    var newValue;
-    newValue = value % this.processor.numMemoryAddresses;
-    if (newValue < 0) {
-      newValue += this.processor.numMemoryAddresses;
-    }
-    return newValue;
-  };
-
-  State.prototype.getRegister = function(registerName) {
-    var registerIndex;
-    registerIndex = this.processor.registerIndexLookup[registerName];
-    return this.constrainRegister(this.registers[registerIndex]);
-  };
-
-  State.prototype.setRegister = function(registerName, value) {
-    var newValue, registerIndex;
-    registerIndex = this.processor.registerIndexLookup[registerName];
-    newValue = this.constrainRegister(value);
-    this.registers[registerIndex] = newValue;
-    return this.changeHandler(this.eventFor('setRegister', registerName, newValue));
-  };
-
-  State.prototype.getMemory = function(address) {
-    address = this.constrainAddress(address);
-    return this.memory[address];
-  };
-
-  State.prototype.setMemory = function(address, value) {
-    var newValue;
-    address = this.constrainAddress(address);
-    newValue = this.constrainMemory(value);
-    this.memory[address] = newValue;
-    return this.changeHandler(this.eventFor('setMemory', address, newValue));
-  };
-
-  State.prototype.getAllMemory = function() {
-    return this.memory.slice();
-  };
-
-  State.prototype.setAllMemory = function(values) {
-    var i, _i, _ref;
-    for (i = _i = 0, _ref = this.processor.numMemoryAddresses; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-      if (i < values.length) {
-        this.memory[i] = this.constrainMemory(values[i]);
-      } else {
-        this.memory[i] = 0;
-      }
-    }
-    return this.changeHandler(this.eventFor('setAllMemory', values));
-  };
-
-  State.prototype.setAllRegisters = function(values) {
-    var i, _i, _ref;
-    for (i = _i = 0, _ref = this.processor.numRegisters; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-      if (i < values.length) {
-        this.registers[i] = this.constrainRegister(values[i]);
-      } else {
-        this.registers[i] = 0;
-      }
-    }
-    return this.changeHandler(this.eventFor('setAllRegisters', values));
-  };
-
-  State.prototype.nextStep = function(pipelineLength) {
-    this.pipelineStep = (this.pipelineStep + 1) % pipelineLength;
-    if (this.pipelineStep === 0) {
-      this.executionStep += 1;
-    }
-    return this.changeHandler(this.eventFor('nextStep', this.pipelineStep, this.executionStep));
-  };
-
-  State.prototype.print = function(value) {
-    this.output += value + " ";
-    return this.changeHandler(this.eventFor('print', value));
-  };
-
-  State.prototype.printASCII = function(value) {
-    this.output += String.fromCharCode(value);
-    return this.changeHandler(this.eventFor('printASCII', value));
-  };
-
-  State.prototype.ringBell = function() {
-    this.numBellRings += 1;
-    return this.changeHandler(this.eventFor('ringBell'));
-  };
-
-  State.prototype.halt = function() {
-    this.isHalted = true;
-    return this.changeHandler(this.eventFor('halt'));
-  };
-
-  State.prototype.duplicate = function() {
-    var newState;
-    newState = new State(processor);
-    newState.fromObject(this.toObject());
-    return newState;
-  };
-
-  State.prototype.fromObject = function(state) {
-    this.setAllMemory(state.memory);
-    this.setAllRegisters(state.registers);
-    this.isHalted = state.isHalted;
-    this.output = state.output;
-    this.numBellRings = state.numBellRings;
-    this.pipelineStep = state.pipelineStep;
-    this.executionStep = state.executionStep;
-    return this.changeHandler(this.eventFor('fromObject'));
-  };
-
-  State.prototype.toObject = function() {
-    return {
-      memory: this.memory,
-      registers: this.registers,
-      isHalted: this.isHalted,
-      output: this.output,
-      numBellRings: this.numBellRings,
-      pipelineStep: this.pipelineStep,
-      executionStep: this.executionStep
-    };
-  };
-
-  return State;
-
-})();
+  __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 BrowserEmu = (function() {
 
@@ -383,14 +99,10 @@ Emu = (function() {
       case 'updateState':
         return this.processor.state.fromObject(data);
       case 'reset':
-        if (this.processor != null) {
-          return this.processor.state.reset();
-        }
+        if (this.processor != null) return this.processor.state.reset();
         break;
       case 'step':
-        if (this.processor != null) {
-          return this.processor.step();
-        }
+        if (this.processor != null) return this.processor.step();
         break;
       case 'run':
         if (this.processor != null) {
@@ -451,6 +163,19 @@ if (!(typeof window !== "undefined" && window !== null) || !(window.document != 
   self.addEventListener('message', messageListener, false);
 }
 
+Instruction = (function() {
+
+  function Instruction(description, ipIncrement) {
+    this.description = description;
+    this.ipIncrement = ipIncrement;
+  }
+
+  Instruction.prototype.execute = function(state) {};
+
+  return Instruction;
+
+})();
+
 DelegateInstruction = (function(_super) {
 
   __extends(DelegateInstruction, _super);
@@ -479,9 +204,7 @@ InterpretedInstruction = (function(_super) {
 
   InterpretedInstruction.prototype.addCondition = function(conditionCode, statements, fallThrough) {
     var condition, statement, statementTokens, _i, _len, _ref;
-    if (fallThrough == null) {
-      fallThrough = false;
-    }
+    if (fallThrough == null) fallThrough = false;
     condition = Tokeniser.tokenise(conditionCode);
     statementTokens = [];
     _ref = statements.split(Symbol.statementSeparator);
@@ -497,7 +220,7 @@ InterpretedInstruction = (function(_super) {
   };
 
   InterpretedInstruction.prototype.updateCode = function(code) {
-    var blocks, caseBlock, cases, condition, contextClause, contextStatement, contextStatements, fallThrough, key, parts, startingSymbol, statements, value, _i, _j, _len, _len1, _ref, _results;
+    var blocks, caseBlock, cases, condition, contextClause, contextStatement, contextStatements, fallThrough, key, parts, startingSymbol, statements, value, _i, _j, _len, _len2, _ref, _results;
     code = code.replace(/\s+/g, ' ');
     this.conditions = [];
     startingSymbol = code[0];
@@ -526,7 +249,7 @@ InterpretedInstruction = (function(_super) {
     } else if (startingSymbol === Symbol.guard) {
       cases = code.split(Symbol.guard);
       _results = [];
-      for (_j = 0, _len1 = cases.length; _j < _len1; _j++) {
+      for (_j = 0, _len2 = cases.length; _j < _len2; _j++) {
         caseBlock = cases[_j];
         blocks = caseBlock.split(Symbol.conditionTerminator);
         fallThrough = false;
@@ -546,16 +269,16 @@ InterpretedInstruction = (function(_super) {
   };
 
   InterpretedInstruction.prototype.execute = function(state) {
-    var condition, conditionValue, statement, _i, _j, _len, _len1, _ref, _ref1, _results;
+    var condition, conditionValue, statement, _i, _j, _len, _len2, _ref, _ref2, _results;
     _ref = this.conditions;
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       condition = _ref[_i];
       conditionValue = Interpreter.interpretCondition(condition.condition, state, this.context);
       if (conditionValue) {
-        _ref1 = condition.statements;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          statement = _ref1[_j];
+        _ref2 = condition.statements;
+        for (_j = 0, _len2 = _ref2.length; _j < _len2; _j++) {
+          statement = _ref2[_j];
           Interpreter.interpretStatement(statement, state, this.context);
         }
         if (!condition.fallThrough) {
@@ -1344,6 +1067,86 @@ Tokeniser.tokenise = function(code) {
   return (new Tokeniser()).tokenise(code);
 };
 
+Processor = (function() {
+
+  function Processor(name, changeHandler) {
+    var exec, fetch, inc;
+    this.name = name;
+    this.memoryBitSize = 4;
+    this.registerBitSize = 4;
+    this.numMemoryAddresses = 16;
+    this.instructions = [];
+    this.setRegisterNames(['IP', 'IS']);
+    this.state = new State(this, changeHandler);
+    fetch = function(state) {
+      var instruction;
+      instruction = state.getMemory(state.getRegister('IP'));
+      return state.setRegister('IS', instruction);
+    };
+    inc = function(state) {
+      var instruction, instructionNum, ip, ipIncrement;
+      ip = state.getRegister('IP');
+      instructionNum = state.getRegister('IS');
+      instruction = null;
+      if (instructionNum < state.processor.instructions.length) {
+        instruction = state.processor.instructions[instructionNum];
+      }
+      ipIncrement = 1;
+      if (instruction) ipIncrement = instruction.ipIncrement;
+      return state.setRegister('IP', ip + ipIncrement);
+    };
+    exec = function(state) {
+      var instruction, instructionNum;
+      instructionNum = state.getRegister('IS');
+      instruction = null;
+      if (instructionNum < state.processor.instructions.length) {
+        instruction = state.processor.instructions[instructionNum];
+      }
+      if (instruction) return instruction.execute(state);
+    };
+    this.pipeline = [fetch, inc, exec];
+  }
+
+  Processor.prototype.step = function() {
+    if (this.state.isHalted) return;
+    this.pipeline[this.state.pipelineStep](this.state);
+    return this.state.nextStep(this.pipeline.length);
+  };
+
+  Processor.prototype.run = function(maxCycles) {
+    var cycle, maxSteps, _results;
+    cycle = 0;
+    maxSteps = maxCycles * this.state.processor.pipeline.length;
+    _results = [];
+    while ((cycle < maxSteps) && !this.state.isHalted) {
+      this.step();
+      _results.push(cycle += 1);
+    }
+    return _results;
+  };
+
+  Processor.prototype.setRegisterNames = function(names) {
+    var hasIP, hasIS, i, name, _ref;
+    this.registerIndexLookup = {};
+    this.registerNames = names;
+    this.numRegisters = names.length;
+    hasIS = false;
+    hasIP = false;
+    for (i = 0, _ref = this.numRegisters; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      name = names[i];
+      this.registerIndexLookup[name] = i;
+      if (name === 'IP') hasIP = true;
+      if (name === 'IS') hasIS = true;
+    }
+    if (!(hasIS && hasIP)) {
+      throw new Error("Processor must have both IP and IS registers");
+    }
+  };
+
+  return Processor;
+
+})();
+
 InterpretedProcessor = (function(_super) {
 
   __extends(InterpretedProcessor, _super);
@@ -1393,9 +1196,9 @@ InterpretedProcessor = (function(_super) {
   };
 
   InterpretedProcessor.prototype.extractCodeSection = function(code) {
-    var codeStart, i, _i, _ref;
+    var codeStart, i, _ref;
     codeStart = 0;
-    for (i = _i = 0, _ref = code.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+    for (i = 0, _ref = code.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
       if ((code[i] === Symbol.conditionTerminator) || ((code.substring(i, i + Symbol.guard.length)) === Symbol.guard)) {
         break;
       }
@@ -1575,3 +1378,178 @@ Processor4917 = (function(_super) {
   return Processor4917;
 
 })(Processor);
+
+State = (function() {
+
+  function State(processor, changeHandler) {
+    this.processor = processor;
+    this.changeHandler = changeHandler;
+    this.reset();
+    if (!this.changeHandler) {
+      this.changeHandler = function(event) {
+        if (console.log) return console.log(event);
+      };
+    }
+  }
+
+  State.prototype.eventFor = function() {
+    var args;
+    args = Array.prototype.slice.call(arguments);
+    return {
+      state: this.toObject(),
+      action: args[0],
+      arguments: args.slice(1)
+    };
+  };
+
+  State.prototype.reset = function() {
+    var i, _ref, _ref2;
+    this.memory = [];
+    this.registers = [];
+    for (i = 0, _ref = this.processor.numMemoryAddresses; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      this.memory.push(0);
+    }
+    for (i = 0, _ref2 = this.processor.numRegisters; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
+      this.registers.push(0);
+    }
+    this.isHalted = false;
+    this.output = "";
+    this.numBellRings = 0;
+    this.pipelineStep = 0;
+    this.executionStep = 0;
+    return this.changeHandler(this.eventFor('reset'));
+  };
+
+  State.prototype.constrainRegister = function(value) {
+    var mask;
+    mask = (1 << this.processor.registerBitSize) - 1;
+    return value & mask;
+  };
+
+  State.prototype.constrainMemory = function(value) {
+    var mask;
+    mask = (1 << this.processor.memoryBitSize) - 1;
+    return value & mask;
+  };
+
+  State.prototype.constrainAddress = function(value) {
+    var newValue;
+    newValue = value % this.processor.numMemoryAddresses;
+    if (newValue < 0) newValue += this.processor.numMemoryAddresses;
+    return newValue;
+  };
+
+  State.prototype.getRegister = function(registerName) {
+    var registerIndex;
+    registerIndex = this.processor.registerIndexLookup[registerName];
+    return this.constrainRegister(this.registers[registerIndex]);
+  };
+
+  State.prototype.setRegister = function(registerName, value) {
+    var newValue, registerIndex;
+    registerIndex = this.processor.registerIndexLookup[registerName];
+    newValue = this.constrainRegister(value);
+    this.registers[registerIndex] = newValue;
+    return this.changeHandler(this.eventFor('setRegister', registerName, newValue));
+  };
+
+  State.prototype.getMemory = function(address) {
+    address = this.constrainAddress(address);
+    return this.memory[address];
+  };
+
+  State.prototype.setMemory = function(address, value) {
+    var newValue;
+    address = this.constrainAddress(address);
+    newValue = this.constrainMemory(value);
+    this.memory[address] = newValue;
+    return this.changeHandler(this.eventFor('setMemory', address, newValue));
+  };
+
+  State.prototype.getAllMemory = function() {
+    return this.memory.slice();
+  };
+
+  State.prototype.setAllMemory = function(values) {
+    var i, _ref;
+    for (i = 0, _ref = this.processor.numMemoryAddresses; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      if (i < values.length) {
+        this.memory[i] = this.constrainMemory(values[i]);
+      } else {
+        this.memory[i] = 0;
+      }
+    }
+    return this.changeHandler(this.eventFor('setAllMemory', values));
+  };
+
+  State.prototype.setAllRegisters = function(values) {
+    var i, _ref;
+    for (i = 0, _ref = this.processor.numRegisters; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      if (i < values.length) {
+        this.registers[i] = this.constrainRegister(values[i]);
+      } else {
+        this.registers[i] = 0;
+      }
+    }
+    return this.changeHandler(this.eventFor('setAllRegisters', values));
+  };
+
+  State.prototype.nextStep = function(pipelineLength) {
+    this.pipelineStep = (this.pipelineStep + 1) % pipelineLength;
+    if (this.pipelineStep === 0) this.executionStep += 1;
+    return this.changeHandler(this.eventFor('nextStep', this.pipelineStep, this.executionStep));
+  };
+
+  State.prototype.print = function(value) {
+    this.output += value + "";
+    return this.changeHandler(this.eventFor('print', value));
+  };
+
+  State.prototype.printASCII = function(value) {
+    this.output += String.fromCharCode(value);
+    return this.changeHandler(this.eventFor('printASCII', value));
+  };
+
+  State.prototype.ringBell = function() {
+    this.numBellRings += 1;
+    return this.changeHandler(this.eventFor('ringBell'));
+  };
+
+  State.prototype.halt = function() {
+    this.isHalted = true;
+    return this.changeHandler(this.eventFor('halt'));
+  };
+
+  State.prototype.duplicate = function() {
+    var newState;
+    newState = new State(processor);
+    newState.fromObject(this.toObject());
+    return newState;
+  };
+
+  State.prototype.fromObject = function(state) {
+    this.setAllMemory(state.memory);
+    this.setAllRegisters(state.registers);
+    this.isHalted = state.isHalted;
+    this.output = state.output;
+    this.numBellRings = state.numBellRings;
+    this.pipelineStep = state.pipelineStep;
+    this.executionStep = state.executionStep;
+    return this.changeHandler(this.eventFor('fromObject'));
+  };
+
+  State.prototype.toObject = function() {
+    return {
+      memory: this.memory,
+      registers: this.registers,
+      isHalted: this.isHalted,
+      output: this.output,
+      numBellRings: this.numBellRings,
+      pipelineStep: this.pipelineStep,
+      executionStep: this.executionStep
+    };
+  };
+
+  return State;
+
+})();

@@ -22,18 +22,9 @@
 		</div>
 
 		<script>
-			var audio = {
-				hum: "{{ media('assets/hum.mp3') }}",
-				powerup: "{{ media('assets/powerup.mp3') }}",
-				powerdown: "{{ media('assets/powerdown.mp3') }}",
-				ding: "{{ media('assets/ding.mp3') }}"
-			};
-
-			// preload
-			new Audio( audio.hum );
-			new Audio( audio.powerup );
-			new Audio( audio.powerdown );
-			new Audio( audio.ding );
+			window.app.ready( function() {
+				window.app.resize( 940, 700 );
+			} );
 
 			$.ajax( './getSetup', {
 				type: 'GET',
@@ -42,8 +33,7 @@
 					$('#spud').spud( {
 						definition: data.definition,
 						startingState: data.startingState,
-						workerScript: "./spudEmu.js",
-						audio: audio
+						workerScript: "./spudEmu.js"
 					} );
 
 					window.app.resize( 940, 700 );
