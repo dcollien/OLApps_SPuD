@@ -66,6 +66,7 @@
 			$.ajax({
 				url: './save',
 				dataType: 'json',
+				type: 'POST',
 				data: {
 					state: JSON.stringify(saveObj.state),
 					code: saveObj.code
