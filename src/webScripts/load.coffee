@@ -9,8 +9,8 @@ try
 		submissionData.code = submission.file.data
 		submissionData.state = JSON.parse submission.metadata.state
 		submissionData.url = submissionPage.url
+	response.writeJSON submissionData
 catch err
 	error = 'Something went wrong: Unable to load data: ' + err
-
-response.writeJSON submissionData
+	response.writeJSON { error: error }
 
