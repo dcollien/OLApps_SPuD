@@ -1,11 +1,6 @@
 response.setHeader 'Content-Type', 'text/json'
 
-submission = OpenLearning.activity.getSubmission request.user
-state = submission.metadata
-code = submission.file.data
+submission = (OpenLearning.activity.getSubmission request.user)
 
-response.writeJSON {
-	state: state,
-	code: code
-}
+response.writeJSON submission
 

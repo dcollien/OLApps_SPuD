@@ -77,7 +77,13 @@
 			$.ajax({
 				url: './load',
 				dataType: 'json'
-			}).done(callback);
+			}).done( function(submissionObject) {
+				console.log(submissionObject);
+				callback({
+					code: submissionObject.submission.file.data,
+					state: submissionObject.submission.metadata
+				})
+			});
 		};
 
 		var loadApp = function(audio, onSave, onLoad) {
