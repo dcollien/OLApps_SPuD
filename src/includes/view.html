@@ -28,7 +28,7 @@
 				When you're happy with your solution, make sure your program is in its starting state, and then click:<br/>
 				<a href="#" class="btn btn-success" id="automark-button">Automark</a>
 				<br/>
-				<div class="hide" style="width: 320px" id="results">
+				<div class="hide" style="width: 320px; text-align: left;" id="results">
 				</div>
 			</center>
 			{{/automarked}}
@@ -100,7 +100,7 @@
 			var mark;
 			var comment;
 			var correct = true;
-			var commentHTML;
+			var commentHTML = "";
 			for (i = 0; i != marks.length; i++) {
 				comment += '=== ' + tests[i].name + ' === \\n';
 				commentHTML += '<h3>' + tests[i].name + '</h3><br/>';

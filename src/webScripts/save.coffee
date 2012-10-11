@@ -7,7 +7,7 @@ if request.method is 'POST'
 	submission =
 		file: 'code.txt'
 		data: code
-		metadata: { state: state }
+		metadata: state
 	
 	OpenLearning.activity.saveSubmission request.user, submission, 'file'
 
