@@ -49,120 +49,121 @@
 		window.app.resize( 940, 700 );
 	} );
 
-	var tests;
-	
-	try {
-		tests = JSON.parse( $('#tests').text() );
-	} catch (err) {
-		console.log( $('#tests').text() );
-		alert( err );
-	}
-
-	var saveFunc = function(saveObj) {
-		$.ajax({
-			url: './save',
-			dataType: 'json',
-			data: {
-				state: JSON.stringify(saveObj.state),
-				code: saveObj.code
-			}
-		});
-	};
-
-	var loadFunc = function(callback) {
-		$.ajax({
-			url: './load',
-			dataType: 'json'
-		}).done(callback);
-	};
-
-	var loadApp = function(audio, onSave, onLoad) {
-		$('#spud').spud( {
-			definition: $('#definition').text(),
-			startingState: $('#startingState').text(),
-			workerScript: './spudEmu.js',
-			audio: audio,
-			onSave: onSave,
-			onLoad: onLoad
-		} );
-	};
-
-	loadApp(undefined, saveFunc, loadFunc);
-
-	var saveMarks = function( marks ) {
-		var i;
-		var mark;
-		var comment;
-		var correct = true;
-		var commentHTML;
-		for (i = 0; i != marks.length; i++) {
-			comment += '=== ' + tests[i].name + ' === \\n';
-			commentHTML += '<h3>' + tests[i].name + '</h3><br/>';
-
-			if (!marks[i].completed) {
-				comment += '**' + marks[i].comment + '**\\n';
-				correct = false;
-				commentHTML += '<b>Test Failed:</b><br/>'
-			} else {
-				comment += marks[i].comment + '\\n';
-			}
-
-			commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
-		}
-
-		if (correct) {
-			comment += '\\n\\n**All Tests Passed**\\n';
-			commentHTML += '<b>All Tests Passed</b>';
-		}
+	$(document).ready( function( ) {
+		var tests;
 		
-		$('#results').html(commentHTML).fadeIn();
+		try {
+			tests = JSON.parse( $('#tests').text() );
+		} catch (err) {
+			console.log( $('#tests').text() );
+			alert( err );
+		}
 
-		if (correct) {
+		var saveFunc = function(saveObj) {
 			$.ajax({
-				url: './mark',
+				url: './save',
 				dataType: 'json',
 				data: {
-					completed: correct,
-					comment: comment
+					state: JSON.stringify(saveObj.state),
+					code: saveObj.code
 				}
-			}).done( function(data) {
-				if (data.success) {
-					$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
-				}
+			});
+		};
+
+		var loadFunc = function(callback) {
+			$.ajax({
+				url: './load',
+				dataType: 'json'
+			}).done(callback);
+		};
+
+		var loadApp = function(audio, onSave, onLoad) {
+			$('#spud').spud( {
+				definition: $('#definition').text(),
+				startingState: $('#startingState').text(),
+				workerScript: './spudEmu.js',
+				audio: audio,
+				onSave: onSave,
+				onLoad: onLoad
 			} );
-		}
-	};
+		};
 
-	var runTest = function(tests, i, callback) {
-		$('#spud').spud('automark', tests[i].setup, tests[i].test, callback);
-	};
+		loadApp(undefined, saveFunc, loadFunc);
 
-	var runTests = function(tests, callback) {
-		var test;
-		var i = 0;
-		var results = [];
+		var saveMarks = function( marks ) {
+			var i;
+			var mark;
+			var comment;
+			var correct = true;
+			var commentHTML;
+			for (i = 0; i != marks.length; i++) {
+				comment += '=== ' + tests[i].name + ' === \\n';
+				commentHTML += '<h3>' + tests[i].name + '</h3><br/>';
 
-		var nextTest = function(result) {
-			results.push(result);
+				if (!marks[i].completed) {
+					comment += '**' + marks[i].comment + '**\\n';
+					correct = false;
+					commentHTML += '<b>Test Failed:</b><br/>'
+				} else {
+					comment += marks[i].comment + '\\n';
+				}
 
-			console.log(tests[i], result);
+				commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
+			}
 
-			i += 1;
-			if (result.completed && i < tests.length) {
-				runTest( tests, i, nextTest );
-			} else {
-				callback(results);
+			if (correct) {
+				comment += '\\n\\n**All Tests Passed**\\n';
+				commentHTML += '<b>All Tests Passed</b>';
+			}
+			
+			$('#results').html(commentHTML).fadeIn();
+
+			if (correct) {
+				$.ajax({
+					url: './mark',
+					dataType: 'json',
+					data: {
+						completed: correct,
+						comment: comment
+					}
+				}).done( function(data) {
+					if (data.success) {
+						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
+					}
+				} );
 			}
 		};
 
-		runTest( tests, i, nextTest );
-	};
+		var runTest = function(tests, i, callback) {
+			$('#spud').spud('automark', tests[i].setup, tests[i].test, callback);
+		};
 
-	$('#automark-button').click( function( ) {
-		runTests( tests, saveMarks );
-		return false;
+		var runTests = function(tests, callback) {
+			var test;
+			var i = 0;
+			var results = [];
+
+			var nextTest = function(result) {
+				results.push(result);
+
+				console.log(tests[i], result);
+
+				i += 1;
+				if (result.completed && i < tests.length) {
+					runTest( tests, i, nextTest );
+				} else {
+					callback(results);
+				}
+			};
+
+			runTest( tests, i, nextTest );
+		};
+
+		$('#automark-button').click( function( ) {
+			runTests( tests, saveMarks );
+			return false;
+		} );
 	} );
-
 </script>
 
 
