@@ -25,8 +25,8 @@ if request.method is 'POST'
 			view.url = submissionData.url
 			submitSuccess = OpenLearning.activity.submit request.user
 		catch err
-			view.error = 'Something went wrong: Unable to save data'
-		
+			error = 'Something went wrong: Unable to save data'
+
 		response.writeJSON { success: true }
 
 if error?
