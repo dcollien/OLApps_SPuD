@@ -17,7 +17,7 @@
 		{{&app_init_js}}
 	</head>
 	<body>
-		<div style="width: 970px;">
+		<div style="width: 970px;" class="hide" id="activity-view">
 			<div id="spud"></div>
 		</div>
 
@@ -46,7 +46,8 @@
 
 <script>
 	window.app.ready( function() {
-		window.app.resize( 940, 700 );
+		window.app.resize( 940, 800 );
+		$('#activity-view').fadeIn();
 	} );
 
 	$(document).ready( function( ) {
