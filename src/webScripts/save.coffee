@@ -9,13 +9,24 @@ if request.method is 'POST'
 	if not error?
 		code = request.data.code
 
-		submission =
-			file: 'code.txt'
-			data: code
-			metadata: state
-		
-		OpenLearning.activity.saveSubmission request.user, submission, 'file'
+		submission = {
+			file: {
+				filename: 'code.txt'
+				data: code
+			},
+			metadata: {
+				state: state
+			}
+		}
 
+		# set submission data
+		try
+			submissionData = OpenLearning.activity.saveSubmission request.user, submission, 'file'
+			view.url = submissionData.url
+			submitSuccess = OpenLearning.activity.submit request.user
+		catch err
+			view.error = 'Something went wrong: Unable to save data'
+		
 		response.writeJSON { success: true }
 
 if error?
