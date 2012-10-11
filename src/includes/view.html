@@ -125,11 +125,11 @@
 					completed: correct,
 					comment: comment
 				}
-			}).done(data) {
+			}).done( function(data) {
 				if (data.success) {
 					$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
 				}
-			};
+			} );
 		}
 	};
 
