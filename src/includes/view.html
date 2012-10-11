@@ -17,7 +17,7 @@
 		{{&app_init_js}}
 	</head>
 	<body>
-		<div style="height: 840px">
+		<div style="height: 780px" id="outer-container">
 			<div style="width: 970px;" class="hide" id="activity-view">
 				<div id="spud"></div>
 			</div>
@@ -48,7 +48,6 @@
 
 <script>
 	window.app.ready( function() {
-		window.app.resize( 940, 850 );
 		$('#activity-view').fadeIn();
 	} );
 
@@ -89,6 +88,8 @@
 				onSave: onSave,
 				onLoad: onLoad
 			} );
+
+			window.app.resize();
 		};
 
 		loadApp(undefined, saveFunc, loadFunc);
