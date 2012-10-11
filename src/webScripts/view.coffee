@@ -92,7 +92,7 @@ tests = """
 
 try
 	tests = JSON.parse data.tests
-	automarked = true
+	automarked = (tests instanceof Array) and (tests.length > 0)
 catch err
 	tests = []
 	automarked = false
