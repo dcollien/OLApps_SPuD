@@ -15,7 +15,7 @@ if request.method is 'POST'
 				data: code
 			},
 			metadata: {
-				state: state
+				state: JSON.stringify state
 			}
 		}
 
