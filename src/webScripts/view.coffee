@@ -102,6 +102,10 @@ view =
 	startingState: data.startingState
 	tests: data.tests
 	automarked: automarked
+	spud_js: (mediaURL 'js/spud.js')
+	fonts_css: (mediaURL 'assets/fonts.css')
+	board_css: (mediaURL 'assets/board.css')
+	
 
 checkPermission 'read', accessDeniedTemplate, ->
 	render template, view
