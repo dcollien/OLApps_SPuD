@@ -19,4 +19,4 @@ if request.method is 'POST'
 		response.writeJSON { success: true }
 
 if error?
-	response.writeJSON { success: false }
+	response.writeJSON { success: false, error: error }
