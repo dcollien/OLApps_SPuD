@@ -118,11 +118,11 @@ registerNames: IP, IS, R0, R1, SW
 			}
 
 			var state = "null";
-			var saveFunc = function(state) {
-				alert( 'Save: ' + JSON.stringify(state) );
-				state = JSON.stringify(state);
+			var saveFunc = function(saveObject) {
+				alert( 'Save: ' + JSON.stringify(saveObject) );
+				state = JSON.stringify(saveObject);
 			};
-
+			
 			var loadFunc = function(callback) {
 				alert( 'Load' );
 				

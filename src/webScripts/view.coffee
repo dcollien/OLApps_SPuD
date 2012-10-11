@@ -1,3 +1,9 @@
+include "mustache.js"
+include "util.js"
+
+template = include "view.html"
+accessDeniedTemplate = include "accessDeniedTemplate.html"
+
 data = OpenLearning.page.getData( request.user ).data
 
 definition = """
@@ -47,21 +53,55 @@ registerNames: IP, IS, R0, R1, SW
 startingState = """
 [memory]
 
-7 7 7 7
-7 7 7 7
-7 7 7 7
-7 7 7 7
+7 0 0 0
+0 0 0 0
+0 0 0 0
+0 0 0 0
 
 [registers]
 
-IP=5
-IS=3
-R0=2
-R1=1
+IP=0
+IS=1
+R0=0
+R1=2
 """
 
-response.writeJSON
-	startingState: data.startingState
-	definition: data.definition
+tests = """
+[
+	{
+		"name": "First Test",
+		"setup": [ { "type": "clearRegisters" } ],
+		"test": [
+			{
+				"type": "output",
+				"match": "00",
+				"correctComment": "Output Matches!",
+				"incorrectComment": "Output Doesn't Match"
+			},
+			{
+				"type": "register",
+				"parameter": "R0",
+				"match": 0,
+				"correctComment": "Register Matches!",
+				"incorrectComment": "Register Doesn't Match"
+			}
+		]
+	}
+]
+"""
 
-response.setHeader 'Content-Type', 'text/json'
+try
+	tests = JSON.parse data.tests
+	automarked = true
+catch err
+	tests = []
+	automarked = false
+
+view =
+	definition: data.definition
+	startingState: data.startingState
+	tests: data.tests
+	automarked: automarked
+
+checkPermission 'read', accessDeniedTemplate, ->
+	render template, view

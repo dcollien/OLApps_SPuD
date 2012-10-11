@@ -1501,7 +1501,7 @@ State = (function() {
   };
 
   State.prototype.print = function(value) {
-    this.output += value + " ";
+    this.output += value + "";
     return this.changeHandler(this.eventFor('print', value));
   };
 

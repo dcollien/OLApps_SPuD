@@ -865,7 +865,12 @@ CircuitBoard = (function() {
     });
     $saveBtn.click(function() {
       _this.savedState = _this.currentState;
-      if (_this.saveHandler != null) return _this.saveHandler(_this.savedState);
+      if (_this.saveHandler != null) {
+        return _this.saveHandler({
+          state: _this.savedState,
+          code: _this.codeBox.val()
+        });
+      }
     });
     $restoreBtn = $('<div class="btn btn-small">').html($('<i class="icon-upload">')).tooltip({
       title: 'Restore State',
@@ -874,10 +879,11 @@ CircuitBoard = (function() {
     $restoreBtn.click(function() {
       if (!(_this.savedState != null)) {
         if (_this.loadHandler != null) {
-          return _this.loadHandler(function(state) {
+          return _this.loadHandler(function(loadObject) {
             if (state) {
-              this.savedState = state;
-              return this.chip.setState(this.savedState);
+              this.savedState = loadObject.state;
+              this.chip.setState(this.savedState);
+              return this.codeBox.val(loadObject.code);
             }
           });
         }

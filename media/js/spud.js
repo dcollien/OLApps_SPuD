@@ -1,4 +1,121 @@
-var Chip, CircuitBoard;
+var Automarker, Chip, CircuitBoard;
+
+Automarker = {
+  /*
+  	[
+  		{
+  			type: 'memoryUpdate' or 'registerUpdate' or 'clearRegisters'
+  			key: registerName or memoryAddress,
+  			value: value to store
+  		}
+  	]
+  */
+  loadPreconditions: function(preConditions, chip, processor) {
+    var preCondition, reg, _i, _len, _results;
+    _results = [];
+    for (_i = 0, _len = preConditions.length; _i < _len; _i++) {
+      preCondition = preConditions[_i];
+      console.log("setting", preCondition);
+      if (preCondition.type === 'memoryUpdate') {
+        _results.push(chip.updateMemory(preCondition.key, preCondition.value));
+      } else if (preCondition.type === 'registerUpdate') {
+        _results.push(chip.updateRegister(preCondition.key, preCondition.value));
+      } else if (preCondition.type === 'clearRegisters') {
+        _results.push((function() {
+          var _j, _len2, _ref, _results2;
+          _ref = processor.registerNames;
+          _results2 = [];
+          for (_j = 0, _len2 = _ref.length; _j < _len2; _j++) {
+            reg = _ref[_j];
+            _results2.push(chip.updateRegister(reg, 0));
+          }
+          return _results2;
+        })());
+      } else {
+        _results.push(void 0);
+      }
+    }
+    return _results;
+  },
+  /*
+  	[
+  		{
+  			type: 'function' or 'register' or 'memory' or 'output' or 'numRings'
+  			parameter: registerName or memoryAddress
+  			match: value
+  			check: function(state) ...
+  			correctComment: "Test passed",
+  			incorrectComment: "You didn't pass this test"
+  		}
+  	]
+  */
+  checkPostConditions: function(postConditions, state, processor) {
+    var comment, correct, postCondition, registerIndex, _i, _len;
+    correct = true;
+    comment = "";
+    for (_i = 0, _len = postConditions.length; _i < _len; _i++) {
+      postCondition = postConditions[_i];
+      console.log('checking', postCondition);
+      switch (postCondition.type) {
+        case 'function':
+          correct = postCondition.check(state);
+          break;
+        case 'register':
+          registerIndex = processor.registerIndexLookup[postCondition.parameter];
+          correct = state.registers[registerIndex] === postCondition.match;
+          break;
+        case 'memory':
+          correct = state.memory[postCondition.parameter] === postCondition.match;
+          break;
+        case 'output':
+          correct = ("" + state.output).trim() === ("" + postCondition.match).trim();
+          break;
+        case 'numRings':
+          correct = state.numBellRings === postCondition.match;
+      }
+      if (correct) {
+        comment += postCondition.correctComment + '\n';
+      } else {
+        comment += postCondition.incorrectComment + '\n';
+        break;
+      }
+    }
+    return {
+      completed: correct,
+      comment: comment
+    };
+  },
+  mark: function(definition, workerScript, program, preConditions, postConditions, callback) {
+    var chip,
+      _this = this;
+    chip = new Chip(definition, workerScript);
+    return chip.onReady(function(processor) {
+      var done;
+      done = false;
+      console.log('ready');
+      chip.setState(program);
+      Automarker.loadPreconditions(preConditions, chip, processor);
+      chip.onReport(function(report) {
+        if (report.reason === 'runPaused') {
+          callback({
+            completed: false,
+            comment: "Execution timed out"
+          });
+          return done = true;
+        }
+      });
+      chip.onRunUpdate(function(state) {
+        var result;
+        if (state.isHalted && !done) {
+          result = Automarker.checkPostConditions(postConditions, state, processor);
+          return callback(result);
+        }
+      });
+      console.log("running");
+      return chip.speedRun();
+    });
+  }
+};
 
 Chip = (function() {
 
@@ -10,6 +127,7 @@ Chip = (function() {
     this.readyCallbacks = [];
     this.updateCallbacks = [];
     this.runUpdateCallbacks = [];
+    this.reportCallbacks = [];
     if (this.supportsWorkers()) {
       if (typeof console !== "undefined" && console !== null) {
         console.log('Using Worker');
@@ -51,6 +169,10 @@ Chip = (function() {
 
   Chip.prototype.onRunUpdate = function(callback) {
     return this.runUpdateCallbacks.push(callback);
+  };
+
+  Chip.prototype.onReport = function(callback) {
+    return this.reportCallbacks.push(callback);
   };
 
   Chip.prototype.reset = function() {
@@ -113,7 +235,7 @@ Chip = (function() {
   };
 
   Chip.prototype.receive = function(method, data) {
-    var action, args, callback, state, _i, _j, _k, _len, _len2, _len3, _ref, _ref2, _ref3, _results, _results2, _results3;
+    var action, args, callback, state, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _results, _results2, _results3, _results4;
     switch (method) {
       case 'ready':
         _ref = this.readyCallbacks;
@@ -150,10 +272,14 @@ Chip = (function() {
         return _results3;
         break;
       case 'report':
-        if (data.reason === 'runPaused') {
-          this.isSpeedRunning = false;
-          return alert(data.message);
+        if (data.reason === 'runPaused') this.isSpeedRunning = false;
+        _ref4 = this.reportCallbacks;
+        _results4 = [];
+        for (_l = 0, _len4 = _ref4.length; _l < _len4; _l++) {
+          callback = _ref4[_l];
+          _results4.push(callback(data));
         }
+        return _results4;
         break;
     }
   };
@@ -164,25 +290,34 @@ Chip = (function() {
 
 CircuitBoard = (function() {
 
-  function CircuitBoard(selector, definition, workerScript, startingState, audio) {
+  function CircuitBoard(selector, definition, workerScript, startingState, audio, saveHandler, loadHandler) {
     var _this = this;
     this.selector = selector;
     this.definition = definition;
+    this.workerScript = workerScript;
     this.startingState = startingState;
     this.audio = audio;
+    this.saveHandler = saveHandler;
+    this.loadHandler = loadHandler;
     this.soundEnabled = false;
-    if ((this.audio != null) && buzz.isMP3Supported()) this.soundEnabled = true;
+    if ((this.audio != null) && buzz.isMP3Supported()) {
+      this.soundEnabled = true;
+    } else {
+      this.audio = {};
+    }
     this.isOn = false;
-    this.chip = new Chip(this.definition, workerScript);
+    this.chip = new Chip(this.definition, this.workerScript);
     this.isReady = false;
     this.isHalted = false;
     this.effectsEnabled = false;
     this.build();
     this.chip.onReady(function(event) {
-      _this.buildInspector(event);
-      _this.isReady = true;
-      _this.togglePower();
-      return _this.loadFromStartingState();
+      if (!_this.isReady) {
+        _this.buildInspector(event);
+        _this.isReady = true;
+        _this.togglePower();
+        return _this.loadFromStartingState();
+      }
     });
     this.chip.onUpdate(function(state, action, args) {
       if (!_this.isOn) return;
@@ -190,6 +325,9 @@ CircuitBoard = (function() {
     });
     this.chip.onRunUpdate(function(state) {
       return _this.updateAll(state);
+    });
+    this.chip.onReport(function(report) {
+      return alert(report.message);
     });
   }
 
@@ -246,6 +384,10 @@ CircuitBoard = (function() {
       console.log("STOP");
     }
     return this.bgSounds = [];
+  };
+
+  CircuitBoard.prototype.automark = function(preConditions, postConditions, callback) {
+    return Automarker.mark(this.definition, this.workerScript, this.currentState, preConditions, postConditions, callback);
   };
 
   CircuitBoard.prototype.handleUpdate = function(state, action, args) {
@@ -311,10 +453,11 @@ CircuitBoard = (function() {
     var textLimit;
     textLimit = 8194;
     if ((state.output.length > textLimit) && this.chip.isSpeedRunning) {} else if (state.output.length > textLimit) {
-      return this.output.text(' ... \n' + state.output.slice(state.output.length - textLimit, state.output.length));
+      this.output.text(' ... \n' + state.output.slice(state.output.length - textLimit, state.output.length));
     } else {
-      return this.output.text(state.output);
+      this.output.text(state.output);
     }
+    return this.output.text(this.output.text().split('').join(' '));
   };
 
   CircuitBoard.prototype.updateRings = function(bellRings) {
@@ -721,14 +864,32 @@ CircuitBoard = (function() {
       placement: 'bottom'
     });
     $saveBtn.click(function() {
-      return _this.savedState = _this.currentState;
+      _this.savedState = _this.currentState;
+      if (_this.saveHandler != null) {
+        return _this.saveHandler({
+          state: _this.savedState,
+          code: _this.codeBox.val()
+        });
+      }
     });
     $restoreBtn = $('<div class="btn btn-small">').html($('<i class="icon-upload">')).tooltip({
       title: 'Restore State',
       placement: 'bottom'
     });
     $restoreBtn.click(function() {
-      if (_this.savedState != null) return _this.chip.setState(_this.savedState);
+      if (!(_this.savedState != null)) {
+        if (_this.loadHandler != null) {
+          return _this.loadHandler(function(loadObject) {
+            if (state) {
+              this.savedState = loadObject.state;
+              this.chip.setState(this.savedState);
+              return this.codeBox.val(loadObject.code);
+            }
+          });
+        }
+      } else {
+        return _this.chip.setState(_this.savedState);
+      }
     });
     $uploadBtn = $('<div class="btn btn-small">').html($('<i class="icon-edit">')).append(' Edit Program Code');
     $uploadBtn.click(function() {
@@ -861,6 +1022,7 @@ CircuitBoard = (function() {
     var $codeTab, $editorTab, $refTab, $tabContent, $tabs, uploadCode,
       _this = this;
     this.board = $(this.selector);
+    console.log('BUILD');
     $codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>');
     $refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>');
     $tabs = $('<ul class="nav nav-tabs">').append($codeTab).append($refTab);
@@ -958,6 +1120,7 @@ CircuitBoard = (function() {
     });
     $('button').addClass('btn');
     return $('.editor-tab').click(function() {
+      console.log($('#reference'));
       $(this).tab('show');
       return false;
     });
@@ -969,12 +1132,19 @@ CircuitBoard = (function() {
 
 $.fn.extend({
   spud: function() {
-    var definition, options, opts, self;
+    var callback, definition, options, opts, postConditions, preConditions, self;
     self = $.fn.spud;
     switch (arguments[0]) {
       case 'setDefinition':
         definition = arguments[1];
         return $(this);
+      case 'automark':
+        preConditions = arguments[1];
+        postConditions = arguments[2];
+        callback = arguments[3];
+        return $(this).each(function(index, element) {
+          return self.automark(element, preConditions, postConditions, callback);
+        });
       default:
         options = arguments[0];
         if (typeof options === 'string') {
@@ -994,7 +1164,12 @@ $.extend($.fn.spud, {
   defaultOptions: {},
   init: function(element, options) {
     var circuitBoard;
-    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.audio);
+    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.audio, options.onSave, options.onLoad);
     return $(element).data('spud', circuitBoard);
+  },
+  automark: function(element, preConditions, postConditions, callback) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    return circuitBoard.automark(preConditions, postConditions, callback);
   }
 });

@@ -583,8 +583,10 @@ class CircuitBoard
 		$saveBtn.click =>
 			@savedState = @currentState
 			if @saveHandler?
-				@saveHandler @savedState
-
+				@saveHandler {
+					state: @savedState
+					code: @codeBox.val()
+				}
 
 		$restoreBtn = $('<div class="btn btn-small">').html( $('<i class="icon-upload">') ).tooltip
 			title: 'Restore State'
@@ -593,10 +595,11 @@ class CircuitBoard
 		$restoreBtn.click =>
 			if not @savedState?
 				if @loadHandler?
-					@loadHandler (state) ->
+					@loadHandler (loadObject) ->
 						if state
-							@savedState = state
+							@savedState = loadObject.state
 							@chip.setState @savedState
+							@codeBox.val loadObject.code
 			else
 				@chip.setState @savedState
 

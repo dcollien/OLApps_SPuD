@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>SPμD Emulator</title>
+		<script src="/common/jquery.min.js"></script>
+		<script src="/common/jquery-ui/js/jquery-ui.min.js"></script>
+		<script src="/common/bootstrap/js/bootstrap.min.js"></script>
+
+		<script src="{{ media('js/spud.js') }}"></script>
+
+		<link rel="stylesheet" type="text/css" href="/common/bootstrap/css/bootstrap.css">
+		<link type="text/css" href="/common/jquery-ui/css/jquery-ui.css" rel="stylesheet" />
+
+		<link rel="stylesheet" type="text/css" href="{{ media('assets/fonts.css') }}">
+		<link rel="stylesheet" type="text/css" href="{{ media('assets/board.css') }}">
+
+		{{&app_init_js}}
+	</head>
+	<body>
+		<div style="width: 970px;">
+			<div id="spud"></div>
+		</div>
+
+{{#automarked}}
+		<center>
+			<br/>
+			When you're happy with your solution, make sure your program is in its starting state, and then click:<br/>
+			<a href="#" class="btn btn-success" id="automark-button">Automark</a>
+			<br/>
+			<div class="hide" style="width: 320px" id="results">
+			</div>
+		</center>
+{{/automarked}}
+
+<textarea class="hide" id="startingState">
+{{startingState}}
+</textarea>
+
+<textarea class="hide" id="definition">
+{{definition}}
+</textarea>
+
+<textarea class="hide" id="tests">
+{{tests}}
+</textarea>
+
+<script>
+	window.app.ready( function() {
+		window.app.resize( 940, 700 );
+	} );
+
+	var tests;
+	
+	try {
+		tests = JSON.parse( $('#tests').text() );
+	} catch (err) {
+		console.log( $('#tests').text() );
+		alert( err );
+	}
+
+	var saveFunc = function(saveObj) {
+		$.ajax({
+			url: './save',
+			dataType: 'json',
+			data: {
+				state: JSON.stringify(saveObj.state),
+				code: saveObj.code
+			}
+		});
+	};
+
+	var loadFunc = function(callback) {
+		$.ajax({
+			url: './load',
+			dataType: 'json'
+		}).done(callback);
+	};
+
+	var loadApp = function(audio, onSave, onLoad) {
+		$('#spud').spud( {
+			definition: $('#definition').text(),
+			startingState: $('#startingState').text(),
+			workerScript: './spudEmu.js',
+			audio: audio,
+			onSave: onSave,
+			onLoad: onLoad
+		} );
+	};
+
+	loadApp(undefined, saveFunc, loadFunc);
+
+	var saveMarks = function( marks ) {
+		var i;
+		var mark;
+		var comment;
+		var correct = true;
+		var commentHTML;
+		for (i = 0; i != marks.length; i++) {
+			comment += '=== ' + tests[i].name + ' === \n';
+			commentHTML += '<h3>' + tests[i].name + '</h3><br/>';
+
+			if (!marks[i].completed) {
+				comment += '**' + marks[i].comment + '**\n';
+				correct = false;
+				commentHTML += '<b>Test Failed:</b><br/>'
+			} else {
+				comment += marks[i].comment + '\n';
+			}
+
+			commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
+		}
+
+		if (correct) {
+			comment += '\n\n**All Tests Passed**\n';
+			commentHTML += '<b>All Tests Passed</b>';
+		}
+		
+		$('#results').html(commentHTML).fadeIn();
+
+		if (correct) {
+			$.ajax({
+				url: './mark',
+				dataType: 'json',
+				data: {
+					completed: correct,
+					comment: comment
+				}
+			}).done(data) {
+				if (data.success) {
+					$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
+				}
+			};
+		}
+	};
+
+	var runTest = function(tests, i, callback) {
+		$('#spud').spud('automark', tests[i].setup, tests[i].test, callback);
+	};
+
+	var runTests = function(tests, callback) {
+		var test;
+		var i = 0;
+		var results = [];
+
+		var nextTest = function(result) {
+			results.push(result);
+
+			console.log(tests[i], result);
+
+			i += 1;
+			if (result.completed && i < tests.length) {
+				runTest( tests, i, nextTest );
+			} else {
+				callback(results);
+			}
+		};
+
+		runTest( tests, i, nextTest );
+	};
+
+	$('#automark-button').click( function( ) {
+		runTests( tests, saveMarks );
+		return false;
+	} );
+
+</script>
+
+
+	</body>
+</html>
