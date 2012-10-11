@@ -145,22 +145,22 @@ registerNames: IP, IS, R0, R1, SW
 			var saveMarks = function( marks ) {
 				var i;
 				var mark;
-				var comment;
+				var commentLines = [];
 				var correct = true;
 				for (i = 0; i != marks.length; i++) {
-					comment += '== ' + tests[i].name + ' == \\n';
+					commentLines.push('== ' + tests[i].name + ' ==');
 
 					if (!marks[i].completed) {
-						comment += '* **' + marks[i].comment + '**\\n';
+						commentLines.push('* **' + marks[i].comment + '**');
 						correct = false;
 					} else {
-						comment += '* ' + marks[i].comment + '\\n';
+						commentLines.push('* ' + marks[i].comment);
 					}
 				}
 
 				if (correct) {
-					comment += '\\n\\n**All Tests Passed**\\n';
-					alert( "Awesome" );
+					commentLines.push('');
+					commentLines.push('**All Tests Passed**');
 				}
 
 			};

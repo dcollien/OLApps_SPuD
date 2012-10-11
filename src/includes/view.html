@@ -96,22 +96,22 @@
 		var correct = true;
 		var commentHTML;
 		for (i = 0; i != marks.length; i++) {
-			comment += '=== ' + tests[i].name + ' === \n';
+			comment += '=== ' + tests[i].name + ' === \\n';
 			commentHTML += '<h3>' + tests[i].name + '</h3><br/>';
 
 			if (!marks[i].completed) {
-				comment += '**' + marks[i].comment + '**\n';
+				comment += '**' + marks[i].comment + '**\\n';
 				correct = false;
 				commentHTML += '<b>Test Failed:</b><br/>'
 			} else {
-				comment += marks[i].comment + '\n';
+				comment += marks[i].comment + '\\n';
 			}
 
 			commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
 		}
 
 		if (correct) {
-			comment += '\n\n**All Tests Passed**\n';
+			comment += '\\n\\n**All Tests Passed**\\n';
 			commentHTML += '<b>All Tests Passed</b>';
 		}
 		
