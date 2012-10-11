@@ -17,22 +17,22 @@
 		{{&app_init_js}}
 	</head>
 	<body>
-		<div style="height: 1020px;">
+		<div style="height: 840px">
 			<div style="width: 970px;" class="hide" id="activity-view">
 				<div id="spud"></div>
 			</div>
-		</div>
 
-{{#automarked}}
-		<center>
-			<br/>
-			When you're happy with your solution, make sure your program is in its starting state, and then click:<br/>
-			<a href="#" class="btn btn-success" id="automark-button">Automark</a>
-			<br/>
-			<div class="hide" style="width: 320px" id="results">
-			</div>
-		</center>
-{{/automarked}}
+			{{#automarked}}
+			<center>
+				<br/>
+				When you're happy with your solution, make sure your program is in its starting state, and then click:<br/>
+				<a href="#" class="btn btn-success" id="automark-button">Automark</a>
+				<br/>
+				<div class="hide" style="width: 320px" id="results">
+				</div>
+			</center>
+			{{/automarked}}
+		</div>
 
 <textarea class="hide" id="startingState">
 {{startingState}}
@@ -48,7 +48,7 @@
 
 <script>
 	window.app.ready( function() {
-		window.app.resize( 940, 900 );
+		window.app.resize( 940, 850 );
 		$('#activity-view').fadeIn();
 	} );
 
