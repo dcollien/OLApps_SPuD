@@ -59,6 +59,10 @@
 	soundManager.setup( {
 		url: '{{swf_url}}',
 		flashVersion: 9,
+		allowScriptAccess: 'always',
+		useHighPerformance: true,
+		preferFlash: false,
+		useHTML5Audio: true,
 		onerror: function(e) {
 			console.log(e);
 		},
