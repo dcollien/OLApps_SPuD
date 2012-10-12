@@ -7,7 +7,7 @@ class CircuitBoard
 
 		@isReady = false
 		@isHalted = false
-		@effectsEnabled = false
+		@effectsEnabled = true
 
 		@chip.runSpeed = 350
 		@build()
