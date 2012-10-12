@@ -596,7 +596,7 @@ class CircuitBoard
 			if not @savedState?
 				if @loadHandler?
 					@loadHandler (loadObject) ->
-						if state
+						if loadObject
 							@savedState = loadObject.state
 							@chip.setState @savedState
 							@codeBox.val loadObject.code

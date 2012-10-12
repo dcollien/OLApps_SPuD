@@ -880,7 +880,7 @@ CircuitBoard = (function() {
       if (!(_this.savedState != null)) {
         if (_this.loadHandler != null) {
           return _this.loadHandler(function(loadObject) {
-            if (state) {
+            if (loadObject) {
               this.savedState = loadObject.state;
               this.chip.setState(this.savedState);
               return this.codeBox.val(loadObject.code);

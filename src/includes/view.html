@@ -79,11 +79,7 @@
 				url: './load',
 				dataType: 'json'
 			}).done( function(submissionObject) {
-				console.log(submissionObject);
-				callback({
-					code: submissionObject.code,
-					state: submissionObject.state
-				})
+				callback(submissionObject)
 			});
 		};
 
