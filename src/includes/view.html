@@ -126,7 +126,9 @@
 				commentHTML += '<b>All Tests Passed</b>';
 			}
 			
-			$('#results').html(commentHTML).fadeIn();
+			$('#results').html(commentHTML).fadeIn( function() {
+				window.app.resize();
+			} );
 
 			if (correct) {
 				$.ajax({

@@ -608,6 +608,7 @@ class CircuitBoard
 			placement: 'bottom'
 
 		$restoreBtn.click =>
+			@reset()
 			if not @savedState?
 				@doLoad()
 			else

@@ -2,7 +2,7 @@ Automarker =
 	###
 	[
 		{
-			type: 'memoryUpdate' or 'registerUpdate' or 'clearRegisters'
+			type: 'setMemory' or 'setRegister' or 'clearRegisters'
 			key: registerName or memoryAddress,
 			value: value to store
 		}
@@ -11,13 +11,17 @@ Automarker =
 	loadPreconditions: (preConditions, chip, processor) ->
 		for preCondition in preConditions
 			console.log "setting", preCondition
-			if preCondition.type is 'memoryUpdate'
+			if preCondition.type is 'setMemory'
 				chip.updateMemory preCondition.key, preCondition.value
-			else if preCondition.type is 'registerUpdate'
+			else if preCondition.type is 'setRegister'
 				chip.updateRegister preCondition.key, preCondition.value
 			else if preCondition.type is 'clearRegisters'
 				for reg in processor.registerNames
-					chip.updateRegister reg, 0
+					val = 0
+					if preCondition.value?
+						val = preCondition.value
+
+					chip.updateRegister reg, val
 
 	###
 	[
@@ -75,6 +79,7 @@ Automarker =
 			chip.onRunUpdate (state) =>
 				if state.isHalted and not done
 					result = Automarker.checkPostConditions postConditions, state, processor
+					console.log state
 					callback result
 
 			console.log "running"

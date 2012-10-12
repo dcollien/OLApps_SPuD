@@ -4,21 +4,21 @@ Automarker = {
   /*
   	[
   		{
-  			type: 'memoryUpdate' or 'registerUpdate' or 'clearRegisters'
+  			type: 'setMemory' or 'setRegister' or 'clearRegisters'
   			key: registerName or memoryAddress,
   			value: value to store
   		}
   	]
   */
   loadPreconditions: function(preConditions, chip, processor) {
-    var preCondition, reg, _i, _len, _results;
+    var preCondition, reg, val, _i, _len, _results;
     _results = [];
     for (_i = 0, _len = preConditions.length; _i < _len; _i++) {
       preCondition = preConditions[_i];
       console.log("setting", preCondition);
-      if (preCondition.type === 'memoryUpdate') {
+      if (preCondition.type === 'setMemory') {
         _results.push(chip.updateMemory(preCondition.key, preCondition.value));
-      } else if (preCondition.type === 'registerUpdate') {
+      } else if (preCondition.type === 'setRegister') {
         _results.push(chip.updateRegister(preCondition.key, preCondition.value));
       } else if (preCondition.type === 'clearRegisters') {
         _results.push((function() {
@@ -27,7 +27,9 @@ Automarker = {
           _results2 = [];
           for (_j = 0, _len2 = _ref.length; _j < _len2; _j++) {
             reg = _ref[_j];
-            _results2.push(chip.updateRegister(reg, 0));
+            val = 0;
+            if (preCondition.value != null) val = preCondition.value;
+            _results2.push(chip.updateRegister(reg, val));
           }
           return _results2;
         })());
@@ -108,6 +110,7 @@ Automarker = {
         var result;
         if (state.isHalted && !done) {
           result = Automarker.checkPostConditions(postConditions, state, processor);
+          console.log(state);
           return callback(result);
         }
       });
@@ -898,6 +901,7 @@ CircuitBoard = (function() {
       placement: 'bottom'
     });
     $restoreBtn.click(function() {
+      _this.reset();
       if (!(_this.savedState != null)) {
         return _this.doLoad();
       } else {
