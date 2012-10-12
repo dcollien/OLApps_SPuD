@@ -366,7 +366,7 @@ class CircuitBoard
 				if self.isHalted
 					$(this).fadeIn 'fast', -> flash $(this)
 
-		$('.board-led').fadeIn 'fast', -> flash this
+		$('.board-led').fadeIn 'fast'#, -> flash this
 
 	ringBell: ->
 

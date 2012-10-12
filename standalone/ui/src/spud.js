@@ -661,9 +661,7 @@ CircuitBoard = (function() {
         }
       });
     };
-    return $('.board-led').fadeIn('fast', function() {
-      return flash(this);
-    });
+    return $('.board-led').fadeIn('fast');
   };
 
   CircuitBoard.prototype.ringBell = function() {
