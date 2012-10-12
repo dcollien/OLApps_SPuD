@@ -79,8 +79,9 @@
 				url: './load',
 				dataType: 'json'
 			}).done( function(submissionObject) {
-				console.log(submissionObject);
-				callback(submissionObject)
+				if (submissionObject.state) {
+					callback(submissionObject);
+				}
 			});
 		};
 
