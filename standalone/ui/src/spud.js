@@ -364,19 +364,18 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.playSound = function(sound) {
-    if (!this.soundEnabled) return;
-    return console.log("PLAY SOUND");
+    if (!this.soundEnabled) {}
   };
 
   CircuitBoard.prototype.backgroundSound = function(sound) {
     if (!this.soundEnabled) return;
     this.bgSounds = this.bgSounds || [];
-    this.bgSounds.push(sound);
-    return console.log("PLAY BG SOUND");
+    return this.bgSounds.push(sound);
   };
 
   CircuitBoard.prototype.stopBackgroundSounds = function() {
     var sound, _i, _len, _ref;
+    if (!this.soundEnabled) return;
     _ref = this.bgSounds;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       sound = _ref[_i];
@@ -1034,7 +1033,6 @@ CircuitBoard = (function() {
     var $codeTab, $editorTab, $refTab, $tabContent, $tabs, uploadCode,
       _this = this;
     this.board = $(this.selector);
-    console.log('BUILD');
     $codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>');
     $refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>');
     $tabs = $('<ul class="nav nav-tabs">').append($codeTab).append($refTab);
@@ -1092,7 +1090,9 @@ CircuitBoard = (function() {
       return _this.togglePower();
     });
     this.resetButton.click(function() {
-      if (_this.startingState != null) {
+      if (_this.loadHandler != null) {
+        return _this.doLoad();
+      } else if (_this.startingState != null) {
         return _this.restart();
       } else {
         return _this.reset();
@@ -1132,7 +1132,6 @@ CircuitBoard = (function() {
     });
     $('button').addClass('btn');
     return $('.editor-tab').click(function() {
-      console.log($('#reference'));
       $(this).tab('show');
       return false;
     });
