@@ -362,7 +362,7 @@ CircuitBoard = (function() {
     var sound, startSounds, _i, _len, _results;
     if (!this.soundEnabled) {
       this.soundEnabled = true;
-      startSounds = this.bgSounds;
+      startSounds = this.bgSounds || [];
       this.bgSounds = [];
       _results = [];
       for (_i = 0, _len = startSounds.length; _i < _len; _i++) {

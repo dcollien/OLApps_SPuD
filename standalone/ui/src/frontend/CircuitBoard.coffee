@@ -65,7 +65,7 @@ class CircuitBoard
 		if not @soundEnabled
 			@soundEnabled = true
 
-			startSounds = @bgSounds
+			startSounds = @bgSounds or []
 			@bgSounds = []
 			for sound in startSounds
 				@backgroundSound sound
