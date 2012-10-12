@@ -359,14 +359,20 @@ class CircuitBoard
 		@fetchLED.addClass 'ledOn'
 		@incrementLED.addClass 'ledOn'
 		@executeLED.addClass 'ledOn'
-		
-		self = @
-		flash = (led) ->
-			$(led).fadeOut 'slow', ->
-				if self.isHalted
-					$(this).fadeIn 'fast', -> flash $(this)
 
 		$('.board-led').fadeIn 'fast'#, -> flash this
+
+	flash: (led) ->
+		self = @
+		@isFlashing = {} or @isFlashing
+		@isFlashing[led] = true
+		doFlash = (led) ->
+			$(led).fadeOut 'slow', ->
+				if self.isFlashing[led]
+					$(this).fadeIn 'fast', -> doFlash $(this)
+
+	stopFlash: (led) ->
+		@isFlashing[led] = false
 
 	ringBell: ->
 

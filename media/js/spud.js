@@ -642,7 +642,6 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.halt = function() {
-    var flash, self;
     this.isHalted = true;
     this.haltedStatus.text('Halted');
     $('.ledOn').removeClass('ledOn');
@@ -651,19 +650,27 @@ CircuitBoard = (function() {
     this.fetchLED.addClass('ledOn');
     this.incrementLED.addClass('ledOn');
     this.executeLED.addClass('ledOn');
+    return $('.board-led').fadeIn('fast');
+  };
+
+  CircuitBoard.prototype.flash = function(led) {
+    var doFlash, self;
     self = this;
-    flash = function(led) {
+    this.isFlashing = {} || this.isFlashing;
+    this.isFlashing[led] = true;
+    return doFlash = function(led) {
       return $(led).fadeOut('slow', function() {
-        if (self.isHalted) {
+        if (self.isFlashing[led]) {
           return $(this).fadeIn('fast', function() {
-            return flash($(this));
+            return doFlash($(this));
           });
         }
       });
     };
-    return $('.board-led').fadeIn('fast', function() {
-      return flash(this);
-    });
+  };
+
+  CircuitBoard.prototype.stopFlash = function(led) {
+    return this.isFlashing[led] = false;
   };
 
   CircuitBoard.prototype.ringBell = function() {
