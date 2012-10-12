@@ -15,7 +15,6 @@ Automarker = {
     _results = [];
     for (_i = 0, _len = preConditions.length; _i < _len; _i++) {
       preCondition = preConditions[_i];
-      console.log("setting", preCondition);
       if (preCondition.type === 'setMemory') {
         _results.push(chip.updateMemory(preCondition.key, preCondition.value));
       } else if (preCondition.type === 'setRegister') {
@@ -57,7 +56,6 @@ Automarker = {
     comment = "";
     for (_i = 0, _len = postConditions.length; _i < _len; _i++) {
       postCondition = postConditions[_i];
-      console.log('checking', postCondition);
       switch (postCondition.type) {
         case 'function':
           correct = postCondition.check(state);
@@ -94,7 +92,6 @@ Automarker = {
     return chip.onReady(function(processor) {
       var done;
       done = false;
-      console.log('ready');
       chip.setState(program);
       Automarker.loadPreconditions(preConditions, chip, processor);
       chip.onReport(function(report) {
@@ -110,11 +107,9 @@ Automarker = {
         var result;
         if (state.isHalted && !done) {
           result = Automarker.checkPostConditions(postConditions, state, processor);
-          console.log(state);
           return callback(result);
         }
       });
-      console.log("running");
       return chip.speedRun();
     });
   }

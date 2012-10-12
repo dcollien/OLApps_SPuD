@@ -71,19 +71,19 @@ class CircuitBoard
 	playSound: (sound) ->
 		return if not @soundEnabled
 		# TODO
-		console.log "PLAY SOUND"
+		#console.log "PLAY SOUND"
 
 	backgroundSound: (sound) ->
 		return if not @soundEnabled
 		@bgSounds = @bgSounds or []
 		@bgSounds.push sound
-		console.log "PLAY BG SOUND"
+		#console.log "PLAY BG SOUND"
 		# TODO
 
 	stopBackgroundSounds: ->
 		for sound in @bgSounds
 			#TODO
-			console.log "STOP"
+			#console.log "STOP"
 		@bgSounds = []
 
 	automark: (preConditions, postConditions, callback) ->
@@ -772,7 +772,7 @@ class CircuitBoard
 	build: ->
 		@board = $(@selector)
 
-		console.log 'BUILD'
+		#console.log 'BUILD'
 
 		$codeTab = $('<li class="active"><a href="#code" id="code-tab" class="editor-tab">Code</a></li>')
 		$refTab = $('<li><a href="#reference" class="editor-tab">Reference</a></li>')
@@ -912,7 +912,7 @@ class CircuitBoard
 		$('button').addClass 'btn'
 
 		$('.editor-tab').click ->
-			console.log $('#reference')
+			#console.log $('#reference')
 			$(this).tab 'show'
 			return false
 

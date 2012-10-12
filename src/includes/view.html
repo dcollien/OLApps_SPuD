@@ -58,7 +58,7 @@
 		try {
 			tests = JSON.parse( $('#tests').text() );
 		} catch (err) {
-			console.log( $('#tests').text() );
+			//console.log( $('#tests').text() );
 			alert( err );
 		}
 
@@ -143,8 +143,9 @@
 					if (data.success) {
 						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
 						window.app.resize();
+						window.app.updateProgress();
 					} else {
-						console.log( 'Error:', data );
+						//console.log( 'Error:', data );
 					}
 				} );
 			}
@@ -162,7 +163,7 @@
 			var nextTest = function(result) {
 				results.push(result);
 
-				console.log(tests[i], result);
+				//console.log(tests[i], result);
 
 				i += 1;
 				if (result.completed && i < tests.length) {

@@ -10,7 +10,7 @@ Automarker =
 	###
 	loadPreconditions: (preConditions, chip, processor) ->
 		for preCondition in preConditions
-			console.log "setting", preCondition
+			#console.log "setting", preCondition
 			if preCondition.type is 'setMemory'
 				chip.updateMemory preCondition.key, preCondition.value
 			else if preCondition.type is 'setRegister'
@@ -39,7 +39,7 @@ Automarker =
 		correct = true
 		comment = ""
 		for postCondition in postConditions
-			console.log 'checking', postCondition
+			#console.log 'checking', postCondition
 			switch postCondition.type
 				when 'function'
 					correct = (postCondition.check state)
@@ -66,7 +66,7 @@ Automarker =
 		chip = new Chip( definition, workerScript )
 		chip.onReady (processor) =>
 			done = false
-			console.log 'ready'
+			#console.log 'ready'
 			chip.setState program
 
 			Automarker.loadPreconditions preConditions, chip, processor
@@ -79,10 +79,10 @@ Automarker =
 			chip.onRunUpdate (state) =>
 				if state.isHalted and not done
 					result = Automarker.checkPostConditions postConditions, state, processor
-					console.log state
+					#console.log state
 					callback result
 
-			console.log "running"
+			#console.log "running"
 			chip.speedRun()
 
 
