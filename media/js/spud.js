@@ -822,14 +822,17 @@ CircuitBoard = (function() {
   CircuitBoard.prototype.doLoad = function() {
     var _this = this;
     if (this.loadHandler != null) {
-      return this.loadHandler(function(loadObject) {
-        if (loadObject) {
+      this.loadHandler(function(loadObject) {
+        if (loadObject && loadObject.state) {
           _this.savedState = loadObject.state;
           _this.chip.setState(_this.savedState);
           return _this.codeBox.val(loadObject.code);
+        } else {
+          return false;
         }
       });
     }
+    return true;
   };
 
   CircuitBoard.prototype.buildInspector = function(properties) {
@@ -1112,7 +1115,8 @@ CircuitBoard = (function() {
     });
     this.resetButton.click(function() {
       if (_this.loadHandler != null) {
-        return _this.doLoad();
+        _this.reset();
+        if (!_this.doLoad()) return _this.restart();
       } else if (_this.startingState != null) {
         return _this.restart();
       } else {

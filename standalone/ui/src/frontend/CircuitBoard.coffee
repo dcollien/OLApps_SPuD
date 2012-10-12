@@ -512,10 +512,14 @@ class CircuitBoard
 	doLoad: ->
 		if @loadHandler?
 			@loadHandler (loadObject) =>
-				if loadObject
+				if (loadObject and loadObject.state)
 					@savedState = loadObject.state
 					@chip.setState @savedState
 					@codeBox.val loadObject.code
+				else
+					return false
+
+		return true
 
 	buildInspector: (properties) ->
 		@properties = properties
@@ -869,7 +873,9 @@ class CircuitBoard
 
 		@resetButton.click => 
 			if @loadHandler?
-				@doLoad()
+				@reset()
+				if not @doLoad()
+					@restart()
 			else if @startingState?
 				@restart()
 			else
