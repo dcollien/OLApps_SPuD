@@ -303,6 +303,7 @@ CircuitBoard = (function() {
     this.isReady = false;
     this.isHalted = false;
     this.effectsEnabled = false;
+    this.chip.runSpeed = 350;
     this.build();
     this.chip.onReady(function(event) {
       if (!_this.isReady) {

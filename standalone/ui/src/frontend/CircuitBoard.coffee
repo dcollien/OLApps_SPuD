@@ -9,6 +9,7 @@ class CircuitBoard
 		@isHalted = false
 		@effectsEnabled = false
 
+		@chip.runSpeed = 350
 		@build()
 
 		@chip.onReady (event) =>
