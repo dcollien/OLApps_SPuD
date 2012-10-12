@@ -891,7 +891,7 @@ CircuitBoard = (function() {
         var value;
         value = 500 - ui.value;
         _this.chip.runSpeed = value;
-        if (value > 200) {
+        if (value > 300) {
           return _this.effectsEnabled = true;
         } else {
           return _this.effectsEnabled = false;

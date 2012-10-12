@@ -302,7 +302,7 @@ CircuitBoard = (function() {
     this.chip = new Chip(this.definition, this.workerScript);
     this.isReady = false;
     this.isHalted = false;
-    this.effectsEnabled = false;
+    this.effectsEnabled = true;
     this.chip.runSpeed = 350;
     this.build();
     this.chip.onReady(function(event) {
@@ -891,7 +891,7 @@ CircuitBoard = (function() {
         var value;
         value = 500 - ui.value;
         _this.chip.runSpeed = value;
-        if (value > 200) {
+        if (value > 300) {
           return _this.effectsEnabled = true;
         } else {
           return _this.effectsEnabled = false;

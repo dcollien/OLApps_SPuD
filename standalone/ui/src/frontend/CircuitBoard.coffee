@@ -591,7 +591,7 @@ class CircuitBoard
 			change: (event, ui) =>
 				value = (500 - ui.value)
 				@chip.runSpeed = value
-				if value > 200
+				if value > 300
 					@effectsEnabled = true
 				else
 					@effectsEnabled = false
