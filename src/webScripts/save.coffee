@@ -15,7 +15,7 @@ if request.method is 'POST'
 				data: code
 			},
 			metadata: {
-				state: JSON.stringify state
+				state: state
 			}
 		}
 
@@ -24,10 +24,10 @@ if request.method is 'POST'
 			submissionData = OpenLearning.activity.saveSubmission request.user, submission, 'file'
 			view.url = submissionData.url
 			submitSuccess = OpenLearning.activity.submit request.user
+			response.writeJSON { success: true }
 		catch err
 			error = 'Something went wrong: Unable to save data'
 
-		response.writeJSON { success: true }
 
 if error?
 	response.writeJSON { success: false, error: error }
