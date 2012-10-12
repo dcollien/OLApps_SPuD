@@ -110,7 +110,7 @@ view =
 	hum_url: (mediaURL 'assets/hum.mp3')
 	ding_url: (mediaURL 'assets/ding.mp3')
 	powerup_url: (mediaURL 'assets/powerup.mp3')
-	powerdown: (mediaURL 'assets/powerdown.mp3')
+	powerdown_url: (mediaURL 'assets/powerdown.mp3')
 
 
 checkPermission 'read', accessDeniedTemplate, ->
