@@ -134,6 +134,7 @@
 				$.ajax({
 					url: './mark',
 					dataType: 'json',
+					type: 'POST',
 					data: {
 						completed: correct,
 						comment: comment
@@ -142,6 +143,8 @@
 					if (data.success) {
 						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
 						window.app.resize();
+					} else {
+						console.log( 'Error:', data );
 					}
 				} );
 			}
