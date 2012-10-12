@@ -595,7 +595,7 @@ class CircuitBoard
 		$restoreBtn.click =>
 			if not @savedState?
 				if @loadHandler?
-					@loadHandler (loadObject) ->
+					@loadHandler (loadObject) =>
 						if loadObject
 							@savedState = loadObject.state
 							@chip.setState @savedState

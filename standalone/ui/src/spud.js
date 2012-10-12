@@ -881,9 +881,9 @@ CircuitBoard = (function() {
         if (_this.loadHandler != null) {
           return _this.loadHandler(function(loadObject) {
             if (loadObject) {
-              this.savedState = loadObject.state;
-              this.chip.setState(this.savedState);
-              return this.codeBox.val(loadObject.code);
+              _this.savedState = loadObject.state;
+              _this.chip.setState(_this.savedState);
+              return _this.codeBox.val(loadObject.code);
             }
           });
         }
