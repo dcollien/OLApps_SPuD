@@ -58,6 +58,10 @@
 	var soundEnabled = false;
 	soundManager.setup( {
 		url: '{{swf_url}}',
+		flashVersion: 9,
+		onerror: function(e) {
+			console.log(e);
+		},
 		onready: function() {
 			soundManager.createSound({
 				id: 'hum',
