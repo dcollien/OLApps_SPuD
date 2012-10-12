@@ -81,9 +81,10 @@ class CircuitBoard
 		# TODO
 
 	stopBackgroundSounds: ->
+		return if not @soundEnabled
 		for sound in @bgSounds
 			#TODO
-			#console.log "STOP"
+			console.log "STOP"
 		@bgSounds = []
 
 	automark: (preConditions, postConditions, callback) ->
@@ -860,7 +861,9 @@ class CircuitBoard
 		@powerSwitch.click => @togglePower()
 
 		@resetButton.click => 
-			if @startingState?
+			if @loadHandler?
+				@doLoad()
+			else if @startingState?
 				@restart()
 			else
 				@reset()

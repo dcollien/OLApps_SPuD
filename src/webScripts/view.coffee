@@ -5,7 +5,7 @@ template = include "view.html"
 accessDeniedTemplate = include "accessDeniedTemplate.html"
 
 data = OpenLearning.page.getData( request.user ).data
-
+###
 definition = """
 name: 4004
 memoryBitSize: 4
@@ -89,7 +89,7 @@ tests = """
 	}
 ]
 """
-
+###
 try
 	tests = JSON.parse data.tests
 	automarked = (tests instanceof Array) and (tests.length > 0)
@@ -105,7 +105,7 @@ view =
 	spud_js: (mediaURL 'js/spud.js')
 	fonts_css: (mediaURL 'assets/fonts.css')
 	board_css: (mediaURL 'assets/board.css')
-	
+
 
 checkPermission 'read', accessDeniedTemplate, ->
 	render template, view
