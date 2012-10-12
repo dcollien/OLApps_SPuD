@@ -1,14 +1,7 @@
 # todo: inspector in its own class
 
 class CircuitBoard
-	constructor: (@selector, @definition, @workerScript, @startingState, @audio, @saveHandler, @loadHandler) ->
-
-		@soundEnabled = false
-		if @audio? and buzz.isMP3Supported()
-			@soundEnabled = true
-		else
-			@audio = {}
-
+	constructor: (@selector, @definition, @workerScript, @startingState, @soundEnabled, @saveHandler, @loadHandler) ->
 		@isOn = false
 		@chip = new Chip( @definition, @workerScript )
 
@@ -68,23 +61,29 @@ class CircuitBoard
 			catch error
 				console.log error
 
+	enableSound: ->
+		@soundEnabled = true
+
 	playSound: (sound) ->
 		return if not @soundEnabled
-		# TODO
-		#console.log "PLAY SOUND"
+		soundManager.play sound
 
 	backgroundSound: (sound) ->
 		return if not @soundEnabled
 		@bgSounds = @bgSounds or []
 		@bgSounds.push sound
-		#console.log "PLAY BG SOUND"
-		# TODO
-
+		loopSound = (id) =>
+			soundManager.play id, {
+				onfinish: =>
+					if id in @bgSounds
+						loopSound id
+			}
+		loopSound sound
+	
 	stopBackgroundSounds: ->
 		return if not @soundEnabled
 		for sound in @bgSounds
-			#TODO
-			console.log "STOP"
+			soundManager.stop sound
 		@bgSounds = []
 
 	automark: (preConditions, postConditions, callback) ->
@@ -300,7 +299,7 @@ class CircuitBoard
 			@ledOverlay.hide()
 			@chipBox.fadeOut()
 
-			@playSound @audio.powerdown
+			@playSound 'powerdown'
 			@output.fadeOut( )
 
 			setTimeout (=> @stopBackgroundSounds()), 500
@@ -310,11 +309,11 @@ class CircuitBoard
 			@chipBox.fadeIn()
 			@reset()
 
-			@playSound @audio.powerup
+			@playSound 'powerup'
 
 			@output.fadeIn( )
 
-			setTimeout (=> @backgroundSound @audio.hum), 500
+			setTimeout (=> @backgroundSound 'hum'), 500
 
 	restart: ->
 		if @isOn
@@ -378,7 +377,7 @@ class CircuitBoard
 	ringBell: ->
 
 		if @areEffectsEnabled()
-			@playSound @audio.ding
+			@playSound 'ding'
 
 		@bell.stop true, true
 		@bell.addClass 'ringing'

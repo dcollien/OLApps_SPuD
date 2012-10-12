@@ -13,7 +13,9 @@ $.fn.extend
 
 				return $(@).each (index, element) ->
 					self.automark element, preConditions, postConditions, callback
-
+			when 'enableSound'
+				return $(@).each (index, element) ->
+					self.enableSound element
 			else
 				options = arguments[0]
 
@@ -31,10 +33,15 @@ $.extend $.fn.spud,
 	defaultOptions: {}
 
 	init: (element, options) ->
-		circuitBoard = new CircuitBoard( element, options.definition, options.workerScript, options.startingState, options.audio, options.onSave, options.onLoad )
+		circuitBoard = new CircuitBoard( element, options.definition, options.workerScript, options.startingState, options.soundEnabled, options.onSave, options.onLoad )
 		$(element).data 'spud', circuitBoard
+	
+	enableSound: (element) ->
+		circuitBoard = $(element).data 'spud'
+		circuitBoard.enableSound()
 
 	automark: (element, preConditions, postConditions, callback) ->
 		circuitBoard = $(element).data 'spud'
 		circuitBoard.automark preConditions, postConditions, callback
+
 

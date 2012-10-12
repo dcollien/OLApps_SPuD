@@ -103,8 +103,14 @@ view =
 	tests: data.tests
 	automarked: automarked
 	spud_js: (mediaURL 'js/spud.js')
+	soundmanager2_js: (mediaURL 'js/soundmanager2.js')
+	swf_url: (mediaURL 'swf/')
 	fonts_css: (mediaURL 'assets/fonts.css')
 	board_css: (mediaURL 'assets/board.css')
+	hum_url: (mediaURL 'assets/hum.mp3')
+	ding_url: (mediaURL 'assets/ding.mp3')
+	powerup_url: (mediaURL 'assets/powerup.mp3')
+	powerdown: (mediaURL 'assets/powerdown.mp3')
 
 
 checkPermission 'read', accessDeniedTemplate, ->

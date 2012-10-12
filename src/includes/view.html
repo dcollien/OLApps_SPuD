@@ -8,6 +8,8 @@
 
 		<script src="{{spud_js}}"></script>
 
+		<script src="{{soundmanager2_js}}"></script>
+
 		<link rel="stylesheet" type="text/css" href="/common/bootstrap/css/bootstrap.css">
 		<link type="text/css" href="/common/jquery-ui/css/jquery-ui.css" rel="stylesheet" />
 
@@ -53,6 +55,35 @@
 		$('#activity-view').fadeIn();
 	} );
 
+	var soundEnabled = false;
+	soundManager.setup( {
+		url: '{{swf_url}}',
+		onready: function() {
+			soundManager.createSound({
+				id: 'hum',
+				url: '{{hum_url}}'
+			});
+			
+			soundManager.createSound({
+				id: 'ding',
+				url: '{{ding_url}}'
+			});
+
+			soundManager.createSound({
+				id: 'powerup',
+				url: '{{powerup_url}}'
+			});
+
+			soundManager.createSound({
+				id: 'powerdown',
+				url: '{{powerdown_url}}'
+			})
+
+			$('#spud').spud('enableSound');
+			soundEnabled = true;
+		}
+	});
+
 	$(document).ready( function( ) {
 		var tests;
 		
@@ -91,7 +122,7 @@
 				definition: $('#definition').text(),
 				startingState: $('#startingState').text(),
 				workerScript: './spudEmu.js',
-				audio: audio,
+				soundEnabled: soundEnabled,
 				onSave: onSave,
 				onLoad: onLoad
 			} );

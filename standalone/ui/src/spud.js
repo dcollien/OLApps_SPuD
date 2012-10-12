@@ -1,4 +1,5 @@
-var Automarker, Chip, CircuitBoard;
+var Automarker, Chip, CircuitBoard,
+  __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 Automarker = {
   /*
@@ -288,21 +289,15 @@ Chip = (function() {
 
 CircuitBoard = (function() {
 
-  function CircuitBoard(selector, definition, workerScript, startingState, audio, saveHandler, loadHandler) {
+  function CircuitBoard(selector, definition, workerScript, startingState, soundEnabled, saveHandler, loadHandler) {
     var _this = this;
     this.selector = selector;
     this.definition = definition;
     this.workerScript = workerScript;
     this.startingState = startingState;
-    this.audio = audio;
+    this.soundEnabled = soundEnabled;
     this.saveHandler = saveHandler;
     this.loadHandler = loadHandler;
-    this.soundEnabled = false;
-    if ((this.audio != null) && buzz.isMP3Supported()) {
-      this.soundEnabled = true;
-    } else {
-      this.audio = {};
-    }
     this.isOn = false;
     this.chip = new Chip(this.definition, this.workerScript);
     this.isReady = false;
@@ -363,14 +358,29 @@ CircuitBoard = (function() {
     }
   };
 
+  CircuitBoard.prototype.enableSound = function() {
+    return this.soundEnabled = true;
+  };
+
   CircuitBoard.prototype.playSound = function(sound) {
-    if (!this.soundEnabled) {}
+    if (!this.soundEnabled) return;
+    return soundManager.play(sound);
   };
 
   CircuitBoard.prototype.backgroundSound = function(sound) {
+    var loopSound,
+      _this = this;
     if (!this.soundEnabled) return;
     this.bgSounds = this.bgSounds || [];
-    return this.bgSounds.push(sound);
+    this.bgSounds.push(sound);
+    loopSound = function(id) {
+      return soundManager.play(id, {
+        onfinish: function() {
+          if (__indexOf.call(_this.bgSounds, id) >= 0) return loopSound(id);
+        }
+      });
+    };
+    return loopSound(sound);
   };
 
   CircuitBoard.prototype.stopBackgroundSounds = function() {
@@ -379,7 +389,7 @@ CircuitBoard = (function() {
     _ref = this.bgSounds;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       sound = _ref[_i];
-      console.log("STOP");
+      soundManager.stop(sound);
     }
     return this.bgSounds = [];
   };
@@ -584,7 +594,7 @@ CircuitBoard = (function() {
       $('.ledOn').removeClass('ledOn');
       this.ledOverlay.hide();
       this.chipBox.fadeOut();
-      this.playSound(this.audio.powerdown);
+      this.playSound('powerdown');
       this.output.fadeOut();
       return setTimeout((function() {
         return _this.stopBackgroundSounds();
@@ -594,10 +604,10 @@ CircuitBoard = (function() {
       this.isOn = true;
       this.chipBox.fadeIn();
       this.reset();
-      this.playSound(this.audio.powerup);
+      this.playSound('powerup');
       this.output.fadeIn();
       return setTimeout((function() {
-        return _this.backgroundSound(_this.audio.hum);
+        return _this.backgroundSound('hum');
       }), 500);
     }
   };
@@ -672,7 +682,7 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.ringBell = function() {
     var _this = this;
-    if (this.areEffectsEnabled()) this.playSound(this.audio.ding);
+    if (this.areEffectsEnabled()) this.playSound('ding');
     this.bell.stop(true, true);
     this.bell.addClass('ringing');
     return this.bell.fadeOut(800, function() {
@@ -1156,6 +1166,10 @@ $.fn.extend({
         return $(this).each(function(index, element) {
           return self.automark(element, preConditions, postConditions, callback);
         });
+      case 'enableSound':
+        return $(this).each(function(index, element) {
+          return self.enableSound(element);
+        });
       default:
         options = arguments[0];
         if (typeof options === 'string') {
@@ -1175,8 +1189,13 @@ $.extend($.fn.spud, {
   defaultOptions: {},
   init: function(element, options) {
     var circuitBoard;
-    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.audio, options.onSave, options.onLoad);
+    circuitBoard = new CircuitBoard(element, options.definition, options.workerScript, options.startingState, options.soundEnabled, options.onSave, options.onLoad);
     return $(element).data('spud', circuitBoard);
+  },
+  enableSound: function(element) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    return circuitBoard.enableSound();
   },
   automark: function(element, preConditions, postConditions, callback) {
     var circuitBoard;
