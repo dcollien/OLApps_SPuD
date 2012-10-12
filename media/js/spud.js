@@ -316,7 +316,8 @@ CircuitBoard = (function() {
         _this.buildInspector(event);
         _this.isReady = true;
         _this.togglePower();
-        return _this.loadFromStartingState();
+        _this.loadFromStartingState();
+        return _this.doLoad();
       }
     });
     this.chip.onUpdate(function(state, action, args) {
@@ -793,6 +794,19 @@ CircuitBoard = (function() {
     if (pages > 1) return $memoryContainer.append($pagination);
   };
 
+  CircuitBoard.prototype.doLoad = function() {
+    var _this = this;
+    if (this.loadHandler != null) {
+      return this.loadHandler(function(loadObject) {
+        if (loadObject) {
+          _this.savedState = loadObject.state;
+          _this.chip.setState(_this.savedState);
+          return _this.codeBox.val(loadObject.code);
+        }
+      });
+    }
+  };
+
   CircuitBoard.prototype.buildInspector = function(properties) {
     var $cell, $groupA, $groupB, $groupC, $headers, $memoryContainer, $outputBtn, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $sliderBox, $speedRunButton, $table, $uploadBtn, changeRegister, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, unhoverRegister, _i, _j, _len, _len2, _ref, _ref2, _ref3,
       _this = this;
@@ -878,15 +892,7 @@ CircuitBoard = (function() {
     });
     $restoreBtn.click(function() {
       if (!(_this.savedState != null)) {
-        if (_this.loadHandler != null) {
-          return _this.loadHandler(function(loadObject) {
-            if (loadObject) {
-              _this.savedState = loadObject.state;
-              _this.chip.setState(_this.savedState);
-              return _this.codeBox.val(loadObject.code);
-            }
-          });
-        }
+        return _this.doLoad();
       } else {
         return _this.chip.setState(_this.savedState);
       }

@@ -25,6 +25,7 @@ class CircuitBoard
 				@togglePower()
 
 				@loadFromStartingState()
+				@doLoad()
 
 		@chip.onUpdate (state, action, args) =>
 			if not @isOn then return
@@ -494,6 +495,14 @@ class CircuitBoard
 		if (pages > 1)
 			$memoryContainer.append $pagination
 
+	doLoad: ->
+		if @loadHandler?
+			@loadHandler (loadObject) =>
+				if loadObject
+					@savedState = loadObject.state
+					@chip.setState @savedState
+					@codeBox.val loadObject.code
+
 	buildInspector: (properties) ->
 		@properties = properties
 
@@ -594,12 +603,7 @@ class CircuitBoard
 
 		$restoreBtn.click =>
 			if not @savedState?
-				if @loadHandler?
-					@loadHandler (loadObject) =>
-						if loadObject
-							@savedState = loadObject.state
-							@chip.setState @savedState
-							@codeBox.val loadObject.code
+				@doLoad()
 			else
 				@chip.setState @savedState
 
