@@ -359,7 +359,18 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.enableSound = function() {
-    return this.soundEnabled = true;
+    var sound, startSounds, _i, _len, _results;
+    if (!this.soundEnabled) {
+      this.soundEnabled = true;
+      startSounds = this.bgSounds;
+      this.bgSounds = [];
+      _results = [];
+      for (_i = 0, _len = startSounds.length; _i < _len; _i++) {
+        sound = startSounds[_i];
+        _results.push(this.backgroundSound(sound));
+      }
+      return _results;
+    }
   };
 
   CircuitBoard.prototype.playSound = function(sound) {
@@ -370,9 +381,9 @@ CircuitBoard = (function() {
   CircuitBoard.prototype.backgroundSound = function(sound) {
     var loopSound,
       _this = this;
-    if (!this.soundEnabled) return;
     this.bgSounds = this.bgSounds || [];
     this.bgSounds.push(sound);
+    if (!this.soundEnabled) return;
     loopSound = function(id) {
       return soundManager.play(id, {
         onfinish: function() {

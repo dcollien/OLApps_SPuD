@@ -62,16 +62,24 @@ class CircuitBoard
 				console.log error
 
 	enableSound: ->
-		@soundEnabled = true
+		if not @soundEnabled
+			@soundEnabled = true
+
+			startSounds = @bgSounds
+			@bgSounds = []
+			for sound in startSounds
+				@backgroundSound sound
 
 	playSound: (sound) ->
 		return if not @soundEnabled
 		soundManager.play sound
 
 	backgroundSound: (sound) ->
-		return if not @soundEnabled
 		@bgSounds = @bgSounds or []
 		@bgSounds.push sound
+
+		return if not @soundEnabled
+
 		loopSound = (id) =>
 			soundManager.play id, {
 				onfinish: =>
@@ -79,7 +87,7 @@ class CircuitBoard
 						loopSound id
 			}
 		loopSound sound
-	
+
 	stopBackgroundSounds: ->
 		return if not @soundEnabled
 		for sound in @bgSounds
