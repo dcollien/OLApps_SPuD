@@ -978,7 +978,7 @@ CircuitBoard = (function() {
     $valueModeToggle.click(function() {
       if (_this.valueMode === "hex") {
         _this.valueMode = "decimal";
-        $valueModeToggle.text("Using Decimal");
+        $valueModeToggle.text("In Decimal");
       } else {
         _this.valueMode = "hex";
         $valueModeToggle.text("In Hexadecimal");

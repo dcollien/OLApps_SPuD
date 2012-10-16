@@ -680,7 +680,7 @@ class CircuitBoard
 		$valueModeToggle.click =>
 			if @valueMode is "hex"
 				@valueMode = "decimal"
-				$valueModeToggle.text "Using Decimal"
+				$valueModeToggle.text "In Decimal"
 			else
 				@valueMode = "hex"
 				$valueModeToggle.text "In Hexadecimal"
