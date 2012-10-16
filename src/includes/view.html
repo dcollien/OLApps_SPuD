@@ -103,6 +103,7 @@
 		}
 
 		var saveFunc = function(saveObj) {
+			{{#automarked}}
 			$.ajax({
 				url: './save',
 				dataType: 'json',
@@ -112,9 +113,11 @@
 					code: saveObj.code
 				}
 			});
+			{{/automarked}}
 		};
 
 		var loadFunc = function(callback) {
+			{{#automarked}}
 			$.ajax({
 				url: './load',
 				dataType: 'json'
@@ -123,6 +126,7 @@
 					callback(submissionObject);
 				}
 			});
+			{{/automarked}}
 		};
 
 		var loadApp = function(audio, onSave, onLoad) {

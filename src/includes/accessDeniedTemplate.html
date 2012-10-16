@@ -6,10 +6,25 @@
 		<script src="/common/jquery.min.js"></script>
 		{{&app_init_js}}
 	</head>
+	{{^redirect}}
 	<body>
 		<h2>Error</h2>
 		<div class="lead">
 			You do not have permission to view this page
 		</div>
 	</body>
+	{{/redirect}}
+
+	{{#redirect}}
+	<body>
+		<div class="lead">
+			Loading...
+		</div>
+	</body>
+	<script>
+		window.app.ready( function( ) {
+			window.app.sendMessage('redirect');
+		} );
+	</script>
+	{{/redirect}}
 </html>
