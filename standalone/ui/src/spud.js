@@ -305,6 +305,7 @@ CircuitBoard = (function() {
     this.effectsEnabled = true;
     this.chip.runSpeed = 350;
     this.build();
+    this.valueMode = "decimal";
     this.chip.onReady(function(event) {
       if (!_this.isReady) {
         _this.buildInspector(event);
@@ -592,8 +593,13 @@ CircuitBoard = (function() {
     if (this.areEffectsEnabled()) return $('.board-led').fadeIn('fast');
   };
 
-  CircuitBoard.prototype.formatValue = function(value) {
-    return parseInt(value).toString(16).toUpperCase();
+  CircuitBoard.prototype.formatValue = function(value, mode) {
+    if (!(mode != null)) mode = this.valueMode;
+    if (mode === "decimal") {
+      return parseInt(value).toString();
+    } else {
+      return parseInt(value).toString(16).toUpperCase();
+    }
   };
 
   CircuitBoard.prototype.togglePower = function() {
@@ -704,10 +710,13 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.buildMemoryTable = function(pageNum, numRows, numCols, properties) {
-    var $cell, $cellInput, $row, $table, cellNum, changeMemory, hoverCell, i, j, unhoverCell, _ref,
+    var $cell, $cellInput, $row, $table, cellNum, changeMemory, changeMemoryDecimal, hoverCell, i, j, self, unhoverCell, _ref,
       _this = this;
     changeMemory = function(address, value) {
       return _this.chip.updateMemory(address, parseInt(value, 16));
+    };
+    changeMemoryDecimal = function(address, value) {
+      return _this.chip.updateMemory(address, parseInt(value));
     };
     hoverCell = function(cell) {
       var address, instruction;
@@ -728,19 +737,23 @@ CircuitBoard = (function() {
       for (j = 0, _ref = numCols + 1; 0 <= _ref ? j < _ref : j > _ref; 0 <= _ref ? j++ : j--) {
         if (j === 0) {
           $cell = $('<th>');
-          $cell.text('0x' + this.formatValue(cellNum));
+          $cell.text('0x' + this.formatValue(cellNum, "hex"));
         } else {
           $cell = $('<td>');
           if (cellNum < properties.numMemoryAddresses) {
             $cellInput = $('<input type="text" class="board-memory-input">');
-            $cellInput.attr('maxlength', properties.memoryBitSize / 4);
             $cellInput.attr('id', 'memory-' + cellNum);
+            self = this;
             $cellInput.change(function() {
               var address, cell, value;
               cell = $(this);
               address = (cell.attr('id')).replace('memory-', '');
               value = cell.val();
-              return changeMemory(address, value);
+              if (self.valueMode === "decimal") {
+                return changeMemoryDecimal(address, value);
+              } else {
+                return changeMemory(address, value);
+              }
             });
             $cellInput.click(function() {
               return $(this).select();
@@ -837,11 +850,14 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.buildInspector = function(properties) {
-    var $cell, $groupA, $groupB, $groupC, $headers, $memoryContainer, $outputBtn, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $sliderBox, $speedRunButton, $table, $uploadBtn, changeRegister, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, unhoverRegister, _i, _j, _len, _len2, _ref, _ref2, _ref3,
+    var $cell, $groupA, $groupB, $groupC, $groupD, $headers, $memoryContainer, $outputBtn, $refTable, $reference, $registerContainer, $registerInput, $registers, $resetBtn, $restoreBtn, $saveBtn, $sliderBox, $speedRunButton, $table, $uploadBtn, $valueModeToggle, changeRegister, changeRegisterDecimal, hoverRegister, i, instruction, maxRowLength, registerName, row, rowLength, self, unhoverRegister, _i, _j, _len, _len2, _ref, _ref2, _ref3,
       _this = this;
     this.properties = properties;
     changeRegister = function(name, value) {
       return _this.chip.updateRegister(name, parseInt(value, 16));
+    };
+    changeRegisterDecimal = function(name, value) {
+      return _this.chip.updateRegister(name, parseInt(value));
     };
     hoverRegister = function(regInput) {
       var instruction, val;
@@ -902,6 +918,7 @@ CircuitBoard = (function() {
     $groupA = $('<div class="btn-group">');
     $groupB = $('<div class="btn-group">');
     $groupC = $('<div class="btn-group">');
+    $groupD = $('<div class="btn-group">');
     $saveBtn = $('<div class="btn btn-small">').html($('<i class="icon-download">')).tooltip({
       title: 'Save Current State',
       placement: 'bottom'
@@ -954,10 +971,25 @@ CircuitBoard = (function() {
     $outputBtn.click(function() {
       return document.location = 'data:Application/octet-stream,' + encodeURIComponent(_this.currentState.output);
     });
+    $valueModeToggle = $('<div class="btn btn-small">').text('In Decimal').tooltip({
+      title: 'Toggle Hex/Decimal',
+      placement: 'bottom'
+    });
+    $valueModeToggle.click(function() {
+      if (_this.valueMode === "hex") {
+        _this.valueMode = "decimal";
+        $valueModeToggle.text("Using Decimal");
+      } else {
+        _this.valueMode = "hex";
+        $valueModeToggle.text("In Hexadecimal");
+      }
+      return _this.updateAll(_this.currentState);
+    });
     $groupA.append($uploadBtn);
     $groupB.append($saveBtn).append($restoreBtn).append($resetBtn);
     $groupC.append($speedRunButton);
-    this.toolbar.append($groupA).append($groupB).append($groupC);
+    $groupD.append($valueModeToggle);
+    this.toolbar.append($groupA).append($groupB).append($groupC).append($groupD);
     this.header.append($sliderBox);
     this.header.append(this.toolbar);
     $memoryContainer = $('<div class="board-memory-container">');
@@ -983,14 +1015,18 @@ CircuitBoard = (function() {
       $headers.append($('<th>').text(registerName));
       $cell = $('<td>');
       $registerInput = $('<input type="text" class="board-register-input">');
-      $registerInput.attr('maxlength', properties.registerBitSize / 4);
       $registerInput.attr('id', 'register-' + registerName);
+      self = this;
       $registerInput.change(function() {
         var cell, name, value;
         cell = $(this);
         name = (cell.attr('id')).replace('register-', '');
         value = cell.val();
-        return changeRegister(name, value);
+        if (self.valueMode === "decimal") {
+          return changeRegisterDecimal(name, value);
+        } else {
+          return changeRegister(name, value);
+        }
       });
       $registerInput.mouseover(function() {
         return hoverRegister($(this));

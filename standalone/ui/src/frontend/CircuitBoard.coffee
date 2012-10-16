@@ -11,6 +11,7 @@ class CircuitBoard
 
 		@chip.runSpeed = 350
 		@build()
+		@valueMode = "decimal"
 
 		@chip.onReady (event) =>
 			if not @isReady
@@ -294,7 +295,14 @@ class CircuitBoard
 			$('.board-led').fadeIn 'fast'
 
 
-	formatValue: (value) -> parseInt(value).toString(16).toUpperCase()
+	formatValue: (value, mode) ->
+		if not mode?
+			mode = @valueMode
+
+		if mode is "decimal"
+			parseInt(value).toString()
+		else
+			parseInt(value).toString(16).toUpperCase()
 
 	togglePower: ->
 		if not @isReady then return
@@ -396,6 +404,7 @@ class CircuitBoard
 
 	buildMemoryTable: (pageNum, numRows, numCols, properties) ->
 		changeMemory   = (address, value) => @chip.updateMemory address, parseInt(value, 16)
+		changeMemoryDecimal   = (address, value) => @chip.updateMemory address, parseInt(value)
 		hoverCell = (cell) =>
 			address = (cell.attr 'id').replace 'memory-', ''
 			instruction = properties.instructions[parseInt(cell.val(), 16)]
@@ -416,19 +425,24 @@ class CircuitBoard
 			for j in [0...(numCols+1)]
 				if j is 0
 					$cell = $('<th>')
-					$cell.text '0x' + @formatValue(cellNum)
+					$cell.text '0x' + @formatValue(cellNum, "hex")
 				else
 					$cell = $('<td>')
 
 					if (cellNum < properties.numMemoryAddresses)
 						$cellInput = $('<input type="text" class="board-memory-input">')
-						$cellInput.attr 'maxlength', properties.memoryBitSize/4 # bits to hex
+						# TODO: change this on mode change
+						#$cellInput.attr 'maxlength', properties.memoryBitSize/4 # bits to hex
 						$cellInput.attr 'id', ('memory-' + cellNum)
+						self = @
 						$cellInput.change -> 
 							cell = $(this)
 							address = (cell.attr 'id').replace 'memory-', ''
 							value = cell.val()
-							changeMemory address, value
+							if self.valueMode is "decimal"
+								changeMemoryDecimal address, value
+							else
+								changeMemory address, value
 						$cellInput.click -> $(this).select()
 
 						$cell.append $cellInput
@@ -528,6 +542,7 @@ class CircuitBoard
 		#properties.numMemoryAddresses = 1024
 
 		changeRegister = (name, value) => @chip.updateRegister name, parseInt(value, 16)
+		changeRegisterDecimal = (name, value) => @chip.updateRegister name, parseInt(value)
 
 		hoverRegister = (regInput) =>
 			if (regInput.attr 'id') is 'register-IP'
@@ -603,6 +618,7 @@ class CircuitBoard
 		$groupA = $('<div class="btn-group">')
 		$groupB = $('<div class="btn-group">')
 		$groupC = $('<div class="btn-group">')
+		$groupD = $('<div class="btn-group">')
 
 		$saveBtn = $('<div class="btn btn-small">').html( $('<i class="icon-download">') ).tooltip
 			title: 'Save Current State'
@@ -656,6 +672,20 @@ class CircuitBoard
 		$outputBtn.click =>
 			document.location = 'data:Application/octet-stream,' + encodeURIComponent(@currentState.output)
 
+
+		$valueModeToggle = $('<div class="btn btn-small">').text( 'In Decimal' ).tooltip
+			title: 'Toggle Hex/Decimal'
+			placement: 'bottom'
+
+		$valueModeToggle.click =>
+			if @valueMode is "hex"
+				@valueMode = "decimal"
+				$valueModeToggle.text "Using Decimal"
+			else
+				@valueMode = "hex"
+				$valueModeToggle.text "In Hexadecimal"
+			@updateAll @currentState
+
 		$groupA
 			.append( $uploadBtn )
 		#	.append( $outputBtn )
@@ -668,12 +698,16 @@ class CircuitBoard
 		
 		$groupC
 			.append( $speedRunButton )
+
+		$groupD
+			.append( $valueModeToggle )
 		
 
 		@toolbar
 			.append( $groupA )
 			.append( $groupB )
 			.append( $groupC )
+			.append( $groupD )
 
 		@header.append $sliderBox
 		@header.append @toolbar
@@ -705,14 +739,21 @@ class CircuitBoard
 
 			$headers.append $('<th>').text( registerName )
 			$cell = $('<td>')
+
 			$registerInput = $('<input type="text" class="board-register-input">')
-			$registerInput.attr 'maxlength', properties.registerBitSize/4 # bits to hex
+
+			# TODO: change this on mode switch
+			#$registerInput.attr 'maxlength', properties.registerBitSize/4 # bits to hex
 			$registerInput.attr 'id', 'register-' + registerName
+			self = @
 			$registerInput.change -> 
 				cell = $(this)
 				name = (cell.attr 'id').replace 'register-', ''
 				value = cell.val()
-				changeRegister name, value
+				if self.valueMode is "decimal"
+					changeRegisterDecimal name, value
+				else
+					changeRegister name, value
 			$registerInput.mouseover -> hoverRegister $(this)
 			$registerInput.mouseout -> unhoverRegister $(this)
 			$registerInput.click -> $(this).select()
