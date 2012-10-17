@@ -736,8 +736,12 @@ CircuitBoard = (function() {
       $row = $('<tr>');
       for (j = 0, _ref = numCols + 1; 0 <= _ref ? j < _ref : j > _ref; 0 <= _ref ? j++ : j--) {
         if (j === 0) {
-          $cell = $('<th>');
-          $cell.text('0x' + this.formatValue(cellNum, "hex"));
+          $cell = $("<th class=\"memory-cell-header\" id=\"memory-cell-header-" + cellNum + "\">");
+          if (this.valueMode === "decimal") {
+            $cell.text(this.formatValue(cellNum));
+          } else {
+            $cell.text('0x' + this.formatValue(cellNum, "hex"));
+          }
         } else {
           $cell = $('<td>');
           if (cellNum < properties.numMemoryAddresses) {
@@ -983,6 +987,17 @@ CircuitBoard = (function() {
         _this.valueMode = "hex";
         $valueModeToggle.text("In Hexadecimal");
       }
+      $('.memory-cell-header').each(function(index, elt) {
+        var cellNum, id;
+        id = $(elt).attr('id');
+        id = id.slice('memory-cell-header-'.length);
+        cellNum = parseInt(id);
+        if (_this.valueMode === "decimal") {
+          return $(elt).text(_this.formatValue(cellNum));
+        } else {
+          return $(elt).text('0x' + _this.formatValue(cellNum, "hex"));
+        }
+      });
       return _this.updateAll(_this.currentState);
     });
     $groupA.append($uploadBtn);

@@ -424,8 +424,11 @@ class CircuitBoard
 			$row = $('<tr>')
 			for j in [0...(numCols+1)]
 				if j is 0
-					$cell = $('<th>')
-					$cell.text '0x' + @formatValue(cellNum, "hex")
+					$cell = $("<th class=\"memory-cell-header\" id=\"memory-cell-header-#{cellNum}\">");
+					if @valueMode is "decimal"
+						$cell.text @formatValue(cellNum)
+					else
+						$cell.text '0x' + @formatValue(cellNum, "hex")
 				else
 					$cell = $('<td>')
 
@@ -684,6 +687,16 @@ class CircuitBoard
 			else
 				@valueMode = "hex"
 				$valueModeToggle.text "In Hexadecimal"
+
+			$('.memory-cell-header').each (index, elt) =>
+				id = $(elt).attr 'id'
+				id = id.slice ('memory-cell-header-'.length)
+				cellNum = parseInt id
+				if @valueMode is "decimal"
+					$(elt).text @formatValue(cellNum)
+				else
+					$(elt).text '0x' + @formatValue(cellNum, "hex")
+
 			@updateAll @currentState
 
 		$groupA
