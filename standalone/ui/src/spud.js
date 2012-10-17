@@ -723,7 +723,7 @@ CircuitBoard = (function() {
       address = (cell.attr('id')).replace('memory-', '');
       instruction = properties.instructions[parseInt(cell.val(), 16)];
       if (instruction != null) {
-        return _this.instructionHelp.text('[' + address + '] ' + cell.val() + ': ' + instruction.description);
+        return _this.instructionHelp.html('<span style="display:inline-block; float:left; color: #888; padding: 0px;">[<span style="color:#444">' + address + '</span>]</span> <span style="color:#666">' + cell.val() + ':</span> ' + instruction.description);
       }
     };
     unhoverCell = function(cell) {

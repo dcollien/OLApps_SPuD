@@ -69,23 +69,27 @@
 		onready: function() {
 			soundManager.createSound({
 				id: 'hum',
-				url: '{{hum_url}}'
+				url: '{{hum_url}}',
+				autoLoad: true
 			});
 			
 			soundManager.createSound({
 				id: 'ding',
-				url: '{{ding_url}}'
+				url: '{{ding_url}}',
+				autoLoad: true
 			});
 
 			soundManager.createSound({
 				id: 'powerup',
-				url: '{{powerup_url}}'
+				url: '{{powerup_url}}',
+				autoLoad: true
 			});
-
+			
 			soundManager.createSound({
 				id: 'powerdown',
-				url: '{{powerdown_url}}'
-			})
+				url: '{{powerdown_url}}',
+				autoLoad: true
+			});
 
 			$('#spud').spud('enableSound');
 			soundEnabled = true;
