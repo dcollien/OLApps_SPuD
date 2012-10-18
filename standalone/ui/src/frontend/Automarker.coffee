@@ -31,12 +31,14 @@ Automarker =
 			match: value
 			check: function(state) ...
 			correctComment: "Test passed",
-			incorrectComment: "You didn't pass this test"
+			incorrectComment: "You didn't pass this test",
+			optional: true
 		}
 	]
 	###
 	checkPostConditions: (postConditions, state, processor) ->
-		correct = true
+		isCompleted = true
+		numCorrect = 0
 		comment = ""
 		for postCondition in postConditions
 			#console.log 'checking', postCondition
@@ -48,19 +50,36 @@ Automarker =
 					correct = state.registers[registerIndex] is postCondition.match
 				when 'memory'
 					correct = state.memory[postCondition.parameter] is postCondition.match
+
 				when 'output'
-					correct = (""+state.output).trim() is (""+postCondition.match).trim()
+					match = postCondition.match.trim()
+					output = (""+state.output).trim()
+					if postCondition.parameter is "startswith"
+						correct = output[0...match.length] is match
+					else if postCondition.parameter is "endswith"
+						correct = output[-match.length..] is match
+					else if postCondition.parameter is "rstartswith"
+						correct = match[0...output.length] is output
+					else if postCondition.parameter is "rendswith"
+						correct = match[-output.length..] is output
+					else
+						correct = output is match
+
 				when 'numRings'
 					correct = state.numBellRings is postCondition.match
 
 			if correct
 				comment += (postCondition.correctComment) + '\n'
+				numCorrect += 1
 			else
 				comment += (postCondition.incorrectComment) + '\n'
-				break
+				if postCondition.optional
+					continue
+				else
+					isCompleted = false
+					break
 
-
-		return { completed: correct, comment: comment }
+		return { completed: isCompleted, comment: comment, mark: numCorrect }
 
 	mark: (definition, workerScript, program, preConditions, postConditions, callback) ->
 		chip = new Chip( definition, workerScript )

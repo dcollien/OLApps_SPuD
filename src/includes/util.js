@@ -14,7 +14,7 @@ var checkPermission = function( permission, deniedTemplate, controller ) {
 			app_init_js: request.appInitScript,
 			redirect: true
 		};
-		response.writeData( Mustache.render( deniedTemplate ) );
+		response.writeData( Mustache.render( deniedTemplate, view ) );
 	} else if ( request.sessionData.permissions.indexOf(permission) != -1 ) {
 		// works
 		controller( );

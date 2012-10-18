@@ -84,7 +84,7 @@
 				url: '{{powerup_url}}',
 				autoLoad: true
 			});
-			
+
 			soundManager.createSound({
 				id: 'powerdown',
 				url: '{{powerdown_url}}',
@@ -191,7 +191,7 @@
 					if (data.success) {
 						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
 						window.app.resize();
-						window.app.updateProgress();
+						window.app.sendMessage('updateProgress');
 					} else {
 						//console.log( 'Error:', data );
 					}
