@@ -111,6 +111,8 @@ view =
 	ding_url: (mediaURL 'assets/ding.mp3')
 	powerup_url: (mediaURL 'assets/powerup.mp3')
 	powerdown_url: (mediaURL 'assets/powerdown.mp3')
+	buttonText: data.buttonText or "Run Tests"
+	instructionText: data.instructionText or "When you're happy with your solution, make sure your program memory is in its starting state, and then click:"
 
 
 checkPermission 'read', accessDeniedTemplate, ->

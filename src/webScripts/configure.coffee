@@ -4,7 +4,7 @@ include "util.js"
 template = include "adminTemplate.html"
 accessDeniedTemplate = include "accessDeniedTemplate.html"
 
-fields = ["definition", "startingState", "tests"]
+fields = ["definition", "startingState", "tests", "instructionText", "buttonText"]
 
 # POST and GET controllers
 post = ->
