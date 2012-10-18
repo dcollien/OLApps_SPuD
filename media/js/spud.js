@@ -661,22 +661,19 @@ CircuitBoard = (function() {
   };
 
   CircuitBoard.prototype.clearRegisters = function() {
-    var reg, regIndex, regValue, _i, _len, _ref, _results;
+    var cell, memoryValue, state, _ref, _results;
     if (this.isOn) {
       this.isHalted = false;
       this.haltedStatus.text('');
       this.clearHighlights();
-      if (this.properties != null) {
-        _ref = this.properties.registerNames;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          reg = _ref[_i];
-          regIndex = this.properties.registerIndexLookup[reg];
-          regValue = 0;
-          _results.push($('#register-' + reg).val(this.formatValue(regValue)));
-        }
-        return _results;
+      state = this.currentState;
+      this.chip.reset();
+      _results = [];
+      for (cell = 0, _ref = state.memory.length; 0 <= _ref ? cell < _ref : cell > _ref; 0 <= _ref ? cell++ : cell--) {
+        memoryValue = state.memory[cell];
+        _results.push($('#memory-' + cell).val(this.formatValue(memoryValue)));
       }
+      return _results;
     }
   };
 

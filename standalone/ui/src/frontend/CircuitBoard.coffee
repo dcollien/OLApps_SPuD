@@ -345,17 +345,19 @@ class CircuitBoard
 			@isHalted = false
 			@haltedStatus.text ''	
 			@clearHighlights()
-			if @properties?
-				for reg in @properties.registerNames
-					regIndex = @properties.registerIndexLookup[reg]
-					regValue = 0
-					$('#register-' + reg).val @formatValue(regValue)
+
+			state = @currentState
+			@chip.reset()
+
+			for cell in [0...state.memory.length]
+				memoryValue = state.memory[cell]
+				$('#memory-' + cell).val @formatValue(memoryValue)
+			
 
 	reset: ->
 		if @isOn
 			@isHalted = false
 			@haltedStatus.text ''
-
 			@clearHighlights()
 			@chip.reset()
 
