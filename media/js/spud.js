@@ -660,6 +660,26 @@ CircuitBoard = (function() {
     }
   };
 
+  CircuitBoard.prototype.clearRegisters = function() {
+    var reg, regIndex, regValue, _i, _len, _ref, _results;
+    if (this.isOn) {
+      this.isHalted = false;
+      this.haltedStatus.text('');
+      this.clearHighlights();
+      if (this.properties != null) {
+        _ref = this.properties.registerNames;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          reg = _ref[_i];
+          regIndex = this.properties.registerIndexLookup[reg];
+          regValue = 0;
+          _results.push($('#register-' + reg).val(this.formatValue(regValue)));
+        }
+        return _results;
+      }
+    }
+  };
+
   CircuitBoard.prototype.reset = function() {
     if (this.isOn) {
       this.isHalted = false;
@@ -976,7 +996,7 @@ CircuitBoard = (function() {
       return _this.editor.find('textarea').focus();
     });
     $resetBtn = $('<div class="btn btn-small">').html($('<i class="icon-off">')).tooltip({
-      title: 'Reset to zero',
+      title: 'Clear',
       placement: 'bottom'
     });
     $resetBtn.click(function() {
@@ -1187,14 +1207,17 @@ CircuitBoard = (function() {
       return _this.togglePower();
     });
     this.resetButton.click(function() {
-      if (_this.loadHandler != null) {
-        _this.reset();
-        if (!_this.doLoad()) return _this.restart();
-      } else if (_this.startingState != null) {
-        return _this.restart();
-      } else {
-        return _this.reset();
-      }
+      return _this.clearRegisters();
+      /*
+      			if @loadHandler?
+      				@reset()
+      				if not @doLoad()
+      					@restart()
+      			else if @startingState?
+      				@restart()
+      			else
+      				@reset()
+      */
     });
     this.runButton.click(function() {
       return _this.run();

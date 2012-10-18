@@ -339,7 +339,17 @@ class CircuitBoard
 
 			@clearHighlights()
 			@loadFromStartingState()
-			
+
+	clearRegisters: ->
+		if @isOn
+			@isHalted = false
+			@haltedStatus.text ''	
+			@clearHighlights()
+			if @properties?
+				for reg in @properties.registerNames
+					regIndex = @properties.registerIndexLookup[reg]
+					regValue = 0
+					$('#register-' + reg).val @formatValue(regValue)
 
 	reset: ->
 		if @isOn
@@ -656,7 +666,7 @@ class CircuitBoard
 			@editor.find('textarea').focus()
 
 		$resetBtn = $('<div class="btn btn-small">').html( $('<i class="icon-off">') ).tooltip
-			title: 'Reset to zero'
+			title: 'Clear'
 			placement: 'bottom'
 
 		$resetBtn.click => @reset()
@@ -927,6 +937,8 @@ class CircuitBoard
 		@powerSwitch.click => @togglePower()
 
 		@resetButton.click => 
+			@clearRegisters()
+			###
 			if @loadHandler?
 				@reset()
 				if not @doLoad()
@@ -935,6 +947,7 @@ class CircuitBoard
 				@restart()
 			else
 				@reset()
+			###
 
 		@runButton.click   => @run()
 		@stepButton.click  => @step()
