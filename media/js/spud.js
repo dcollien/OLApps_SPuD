@@ -47,13 +47,15 @@ Automarker = {
   			match: value
   			check: function(state) ...
   			correctComment: "Test passed",
-  			incorrectComment: "You didn't pass this test"
+  			incorrectComment: "You didn't pass this test",
+  			optional: true
   		}
   	]
   */
   checkPostConditions: function(postConditions, state, processor) {
-    var comment, correct, postCondition, registerIndex, _i, _len;
-    correct = true;
+    var comment, correct, isCompleted, match, numCorrect, output, postCondition, registerIndex, _i, _len;
+    isCompleted = true;
+    numCorrect = 0;
     comment = "";
     for (_i = 0, _len = postConditions.length; _i < _len; _i++) {
       postCondition = postConditions[_i];
@@ -69,21 +71,40 @@ Automarker = {
           correct = state.memory[postCondition.parameter] === postCondition.match;
           break;
         case 'output':
-          correct = ("" + state.output).trim() === ("" + postCondition.match).trim();
+          match = postCondition.match.trim();
+          output = ("" + state.output).trim();
+          if (postCondition.parameter === "startswith") {
+            correct = output.slice(0, match.length) === match;
+          } else if (postCondition.parameter === "endswith") {
+            correct = output.slice(-match.length) === match;
+          } else if (postCondition.parameter === "rstartswith") {
+            correct = match.slice(0, output.length) === output;
+          } else if (postCondition.parameter === "rendswith") {
+            correct = match.slice(-output.length) === output;
+          } else {
+            correct = output === match;
+          }
           break;
         case 'numRings':
           correct = state.numBellRings === postCondition.match;
       }
       if (correct) {
         comment += postCondition.correctComment + '\n';
+        numCorrect += 1;
       } else {
         comment += postCondition.incorrectComment + '\n';
-        break;
+        if (postCondition.optional) {
+          continue;
+        } else {
+          isCompleted = false;
+          break;
+        }
       }
     }
     return {
-      completed: correct,
-      comment: comment
+      completed: isCompleted,
+      comment: comment,
+      mark: numCorrect
     };
   },
   mark: function(definition, workerScript, program, preConditions, postConditions, callback) {
