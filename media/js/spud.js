@@ -671,7 +671,7 @@ CircuitBoard = (function() {
       _results = [];
       for (cell = 0, _ref = state.memory.length; 0 <= _ref ? cell < _ref : cell > _ref; 0 <= _ref ? cell++ : cell--) {
         memoryValue = state.memory[cell];
-        _results.push($('#memory-' + cell).val(this.formatValue(memoryValue)));
+        _results.push(this.chip.updateMemory(cell, memoryValue));
       }
       return _results;
     }

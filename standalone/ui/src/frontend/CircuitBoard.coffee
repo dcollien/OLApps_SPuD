@@ -351,8 +351,8 @@ class CircuitBoard
 
 			for cell in [0...state.memory.length]
 				memoryValue = state.memory[cell]
-				$('#memory-' + cell).val @formatValue(memoryValue)
-			
+				@chip.updateMemory cell, memoryValue
+
 
 	reset: ->
 		if @isOn
