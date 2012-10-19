@@ -5,7 +5,6 @@
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-1.8.0.min.js"></script>
 		<script type="text/javascript" src="./lib/jquery-ui/js/jquery-ui-1.8.23.custom.min.js"></script>
 		<script type="text/javascript" src="./lib/bootstrap/js/bootstrap.min.js"></script>
-		<script type="text/javascript" src="./lib/buzz.js"></script>
 
 		<script src="./src/spud.js"></script>
 
@@ -87,7 +86,7 @@ registerNames: IP, IS, R0, R1, SW
 [
 	{
 		"name": "First Test",
-		"setup": [ { "type": "clearRegisters" } ],
+		"setup": [ { "type": "clearRegisters" }, { "type": "clearRegisters" }, { "type": "clearRegisters" } ],
 		"test": [
 			{
 				"type": "output",
@@ -143,25 +142,9 @@ registerNames: IP, IS, R0, R1, SW
 			loadApp(undefined, saveFunc, loadFunc);
 
 			var saveMarks = function( marks ) {
-				var i;
-				var mark;
-				var commentLines = [];
-				var correct = true;
-				for (i = 0; i != marks.length; i++) {
-					commentLines.push('== ' + tests[i].name + ' ==');
+				console.log( 'MARKS:' );
+				console.log( marks );
 
-					if (!marks[i].completed) {
-						commentLines.push('* **' + marks[i].comment + '**');
-						correct = false;
-					} else {
-						commentLines.push('* ' + marks[i].comment);
-					}
-				}
-
-				if (correct) {
-					commentLines.push('');
-					commentLines.push('**All Tests Passed**');
-				}
 
 			};
 

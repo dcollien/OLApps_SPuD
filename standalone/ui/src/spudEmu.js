@@ -97,7 +97,7 @@ Emu = (function() {
         value = data.value;
         return this.processor.state.setMemory(address, value);
       case 'updateAllRegisters':
-        return this.precessor.state.setAllRegisters(value);
+        return this.processor.state.setAllRegisters(data.values);
       case 'updateState':
         return this.processor.state.fromObject(data);
       case 'reset':

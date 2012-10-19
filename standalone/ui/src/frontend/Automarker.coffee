@@ -96,8 +96,9 @@ Automarker =
 
 			chip.onUpdate (state, action, args) =>
 				if (preConditionIndex < preConditions.length)
-					Automarker.loadPrecondition preConditions, chip, processor, preConditionIndex
 					preConditionIndex += 1
+					Automarker.loadPrecondition preConditions, chip, processor, (preConditionIndex-1)
+					
 				else
 					chip.speedRun()
 

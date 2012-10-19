@@ -53,7 +53,7 @@ class Emu
 				@processor.state.setMemory address, value
 
 			when 'updateAllRegisters'
-				@precessor.state.setAllRegisters value
+				@processor.state.setAllRegisters data.values
 
 			when 'updateState'
 				@processor.state.fromObject data

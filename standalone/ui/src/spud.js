@@ -117,8 +117,8 @@ Automarker = {
       });
       chip.onUpdate(function(state, action, args) {
         if (preConditionIndex < preConditions.length) {
-          Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex);
-          return preConditionIndex += 1;
+          preConditionIndex += 1;
+          return Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex - 1);
         } else {
           return chip.speedRun();
         }
