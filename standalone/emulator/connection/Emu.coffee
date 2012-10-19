@@ -52,6 +52,9 @@ class Emu
 				value = data.value
 				@processor.state.setMemory address, value
 
+			when 'updateAllRegisters'
+				@precessor.state.setAllRegisters value
+
 			when 'updateState'
 				@processor.state.fromObject data
 

@@ -8,20 +8,21 @@ Automarker =
 		}
 	]
 	###
-	loadPreconditions: (preConditions, chip, processor) ->
-		for preCondition in preConditions
-			#console.log "setting", preCondition
-			if preCondition.type is 'setMemory'
-				chip.updateMemory preCondition.key, preCondition.value
-			else if preCondition.type is 'setRegister'
-				chip.updateRegister preCondition.key, preCondition.value
-			else if preCondition.type is 'clearRegisters'
-				for reg in processor.registerNames
-					val = 0
-					if preCondition.value?
-						val = preCondition.value
+	loadPrecondition: (preConditions, chip, processor, i) ->
+		preCondition = preConditions[i]
+		if preCondition.type is 'setMemory'
+			chip.updateMemory preCondition.key, preCondition.value
+		else if preCondition.type is 'setRegister'
+			chip.updateRegister preCondition.key, preCondition.value
+		else if preCondition.type is 'clearRegisters'
+			registerValues = []
+			for reg in processor.registerNames
+				val = 0
+				if preCondition.value?
+					val = preCondition.value
 
-					chip.updateRegister reg, val
+				registerValues.push val
+			chip.updateAllRegisters registerValues
 
 	###
 	[
@@ -86,14 +87,19 @@ Automarker =
 		chip.onReady (processor) =>
 			done = false
 			#console.log 'ready'
-			chip.setState program
-
-			Automarker.loadPreconditions preConditions, chip, processor
+			preConditionIndex = 0
 
 			chip.onReport (report) =>
 				if report.reason is 'runPaused'
 					callback { completed: false, comment: "Execution timed out" }
 					done = true
+
+			chip.onUpdate (state, action, args) =>
+				if (preConditionIndex < preConditions.length)
+					Automarker.loadPrecondition preConditions, chip, processor, preConditionIndex
+					preConditionIndex += 1
+				else
+					chip.speedRun()
 
 			chip.onRunUpdate (state) =>
 				if state.isHalted and not done
@@ -101,8 +107,9 @@ Automarker =
 					#console.log state
 					callback result
 
-			#console.log "running"
-			chip.speedRun()
+			chip.setState program
+
+			
 
 
 

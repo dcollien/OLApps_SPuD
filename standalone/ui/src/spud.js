@@ -11,33 +11,24 @@ Automarker = {
   		}
   	]
   */
-  loadPreconditions: function(preConditions, chip, processor) {
-    var preCondition, reg, val, _i, _len, _results;
-    _results = [];
-    for (_i = 0, _len = preConditions.length; _i < _len; _i++) {
-      preCondition = preConditions[_i];
-      if (preCondition.type === 'setMemory') {
-        _results.push(chip.updateMemory(preCondition.key, preCondition.value));
-      } else if (preCondition.type === 'setRegister') {
-        _results.push(chip.updateRegister(preCondition.key, preCondition.value));
-      } else if (preCondition.type === 'clearRegisters') {
-        _results.push((function() {
-          var _j, _len2, _ref, _results2;
-          _ref = processor.registerNames;
-          _results2 = [];
-          for (_j = 0, _len2 = _ref.length; _j < _len2; _j++) {
-            reg = _ref[_j];
-            val = 0;
-            if (preCondition.value != null) val = preCondition.value;
-            _results2.push(chip.updateRegister(reg, val));
-          }
-          return _results2;
-        })());
-      } else {
-        _results.push(void 0);
+  loadPrecondition: function(preConditions, chip, processor, i) {
+    var preCondition, reg, registerValues, val, _i, _len, _ref;
+    preCondition = preConditions[i];
+    if (preCondition.type === 'setMemory') {
+      return chip.updateMemory(preCondition.key, preCondition.value);
+    } else if (preCondition.type === 'setRegister') {
+      return chip.updateRegister(preCondition.key, preCondition.value);
+    } else if (preCondition.type === 'clearRegisters') {
+      registerValues = [];
+      _ref = processor.registerNames;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        reg = _ref[_i];
+        val = 0;
+        if (preCondition.value != null) val = preCondition.value;
+        registerValues.push(val);
       }
+      return chip.updateAllRegisters(registerValues);
     }
-    return _results;
   },
   /*
   	[
@@ -112,10 +103,9 @@ Automarker = {
       _this = this;
     chip = new Chip(definition, workerScript);
     return chip.onReady(function(processor) {
-      var done;
+      var done, preConditionIndex;
       done = false;
-      chip.setState(program);
-      Automarker.loadPreconditions(preConditions, chip, processor);
+      preConditionIndex = 0;
       chip.onReport(function(report) {
         if (report.reason === 'runPaused') {
           callback({
@@ -125,6 +115,14 @@ Automarker = {
           return done = true;
         }
       });
+      chip.onUpdate(function(state, action, args) {
+        if (preConditionIndex < preConditions.length) {
+          Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex);
+          return preConditionIndex += 1;
+        } else {
+          return chip.speedRun();
+        }
+      });
       chip.onRunUpdate(function(state) {
         var result;
         if (state.isHalted && !done) {
@@ -132,7 +130,7 @@ Automarker = {
           return callback(result);
         }
       });
-      return chip.speedRun();
+      return chip.setState(program);
     });
   }
 };
@@ -250,6 +248,15 @@ Chip = (function() {
       data: {
         'memoryAddress': memoryAddress,
         'value': value
+      }
+    }));
+  };
+
+  Chip.prototype.updateAllRegisters = function(values) {
+    return this.worker.postMessage(JSON.stringify({
+      method: 'updateAllRegisters',
+      data: {
+        'values': values
       }
     }));
   };

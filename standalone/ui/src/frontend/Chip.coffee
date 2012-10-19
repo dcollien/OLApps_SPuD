@@ -91,6 +91,14 @@ class Chip
 				}
 			} )
 
+	updateAllRegisters: (values) ->
+		@worker.postMessage JSON.stringify( {
+				method: 'updateAllRegisters'
+				data: {
+					'values': values
+				}
+			} )
+
 	receive: (method, data) ->
 		switch method
 			when 'ready'
