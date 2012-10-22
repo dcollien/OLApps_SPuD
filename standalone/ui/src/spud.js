@@ -64,6 +64,7 @@ Automarker = {
         case 'output':
           match = postCondition.match.trim();
           output = ("" + state.output).trim();
+          if (console) console.log(output, match);
           if (postCondition.parameter === "startswith") {
             correct = output.slice(0, match.length) === match;
           } else if (postCondition.parameter === "endswith") {

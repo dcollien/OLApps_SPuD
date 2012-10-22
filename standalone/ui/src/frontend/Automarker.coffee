@@ -55,6 +55,8 @@ Automarker =
 				when 'output'
 					match = postCondition.match.trim()
 					output = (""+state.output).trim()
+					if console
+						console.log output, match
 					if postCondition.parameter is "startswith"
 						correct = output[0...match.length] is match
 					else if postCondition.parameter is "endswith"
