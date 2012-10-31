@@ -163,22 +163,18 @@
 					testName = tests[i].name;
 				}
 
-				if (marks[i].comment) {
-					comment = marks[i].comment;
-				}
-
 				comment += '=== ' + testName + ' === \\n';
 				commentHTML += '<h3>' + testName + '</h3><br/>';
 
 				if (!marks[i].completed) {
-					comment += '**' + comment + '**\\n';
+					comment += '**' + marks[i].comment + '**\\n';
 					correct = false;
 					commentHTML += '<b>Test Failed:</b><br/>'
 				} else {
-					comment += comment + '\\n';
+					comment += marks[i].comment + '\\n';
 				}
 
-				commentHTML += '<pre>' + comment + '</pre><br/>';
+				commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
 			}
 
 			if (correct) {
@@ -226,7 +222,7 @@
 				if (console.log) {
 					console.log(tests[i], result);
 				}
-				
+
 				i += 1;
 				if (result.completed && i < tests.length) {
 					runTest( tests, i, nextTest );
