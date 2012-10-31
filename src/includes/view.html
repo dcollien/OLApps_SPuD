@@ -148,25 +148,37 @@
 
 		loadApp(undefined, saveFunc, loadFunc);
 
-		var saveMarks = function( marks ) {
+		var saveMarks = function( marks, tests ) {
 			var i;
 			var mark;
 			var comment;
 			var correct = true;
 			var commentHTML = "";
+			var testName;
+			var comment;
 			for (i = 0; i != marks.length; i++) {
-				comment += '=== ' + tests[i].name + ' === \\n';
-				commentHTML += '<h3>' + tests[i].name + '</h3><br/>';
+				testName = "";
+				comment = "";
+				if (tests[i].name) {
+					testName = tests[i].name;
+				}
+
+				if (marks[i].comment) {
+					comment = marks[i].comment;
+				}
+
+				comment += '=== ' + testName + ' === \\n';
+				commentHTML += '<h3>' + testName + '</h3><br/>';
 
 				if (!marks[i].completed) {
-					comment += '**' + marks[i].comment + '**\\n';
+					comment += '**' + comment + '**\\n';
 					correct = false;
 					commentHTML += '<b>Test Failed:</b><br/>'
 				} else {
-					comment += marks[i].comment + '\\n';
+					comment += comment + '\\n';
 				}
 
-				commentHTML += '<pre>' + marks[i].comment + '</pre><br/>';
+				commentHTML += '<pre>' + comment + '</pre><br/>';
 			}
 
 			if (correct) {
@@ -211,13 +223,15 @@
 			var nextTest = function(result) {
 				results.push(result);
 
-				//console.log(tests[i], result);
-
+				if (console.log) {
+					console.log(tests[i], result);
+				}
+				
 				i += 1;
 				if (result.completed && i < tests.length) {
 					runTest( tests, i, nextTest );
 				} else {
-					callback(results);
+					callback(results, tests);
 				}
 			};
 
