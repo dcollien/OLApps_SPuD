@@ -64,7 +64,7 @@
 		preferFlash: false,
 		useHTML5Audio: true,
 		onerror: function(e) {
-			console.log(e);
+			//console.log(e);
 		},
 		onready: function() {
 			soundManager.createSound({
@@ -209,9 +209,6 @@
 
 		var runTest = function(tests, i, callback) {
 			$('#spud').spud('automark', tests[i].setup, tests[i].test, function(result) {
-				if (console.log) {
-					console.log(tests, i, tests[i], result);
-				}
 				callback(i+1 ,result);
 			});
 		};
