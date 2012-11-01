@@ -209,6 +209,9 @@
 
 		var runTest = function(tests, i, callback) {
 			$('#spud').spud('automark', tests[i].setup, tests[i].test, function(result) {
+				if (console.log) {
+					console.log(tests, i, tests[i], result);
+				}
 				callback(i+1 ,result);
 			});
 		};
@@ -220,10 +223,6 @@
 			var nextTest = function(i, result) {
 				results.push(result);
 
-				if (console.log) {
-					console.log(tests, i, tests[i], result);
-				}
-				
 				if (result.completed && i < tests.length) {
 					runTest( tests, i, nextTest );
 				} else {
