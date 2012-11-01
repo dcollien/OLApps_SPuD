@@ -10,10 +10,13 @@ Automarker =
 	###
 	loadPrecondition: (preConditions, chip, processor, i) ->
 		preCondition = preConditions[i]
+		updateType = ''
 		if preCondition.type is 'setMemory'
 			chip.updateMemory preCondition.key, preCondition.value
+			updateType = 'setMemory'
 		else if preCondition.type is 'setRegister'
 			chip.updateRegister preCondition.key, preCondition.value
+			updateType = 'setRegister'
 		else if preCondition.type is 'clearRegisters'
 			registerValues = []
 			for reg in processor.registerNames
@@ -23,6 +26,8 @@ Automarker =
 
 				registerValues.push val
 			chip.updateAllRegisters registerValues
+			updateType = 'setAllRegisters'
+		return updateType
 
 	###
 	[
@@ -85,6 +90,7 @@ Automarker =
 		return { completed: isCompleted, comment: comment, mark: numCorrect }
 
 	mark: (definition, workerScript, program, preConditions, postConditions, callback) ->
+		nextUpdate = 'fromObject'
 		chip = new Chip( definition, workerScript )
 		chip.onReady (processor) =>
 			done = false
@@ -97,13 +103,14 @@ Automarker =
 					done = true
 
 			chip.onUpdate (state, action, args) =>
-				if (preConditionIndex < preConditions.length)
-					preConditionIndex += 1
-					Automarker.loadPrecondition preConditions, chip, processor, (preConditionIndex-1)
-					
-				else
-					chip.speedRun()
-
+				if action is nextUpdate
+					if (preConditionIndex < preConditions.length)
+						preConditionIndex += 1
+						nextUpdate = Automarker.loadPrecondition preConditions, chip, processor, (preConditionIndex-1)
+						
+					else
+						chip.speedRun()
+			
 			chip.onRunUpdate (state) =>
 				if state.isHalted and not done
 					result = Automarker.checkPostConditions postConditions, state, processor

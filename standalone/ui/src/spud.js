@@ -12,12 +12,15 @@ Automarker = {
   	]
   */
   loadPrecondition: function(preConditions, chip, processor, i) {
-    var preCondition, reg, registerValues, val, _i, _len, _ref;
+    var preCondition, reg, registerValues, updateType, val, _i, _len, _ref;
     preCondition = preConditions[i];
+    updateType = '';
     if (preCondition.type === 'setMemory') {
-      return chip.updateMemory(preCondition.key, preCondition.value);
+      chip.updateMemory(preCondition.key, preCondition.value);
+      updateType = 'setMemory';
     } else if (preCondition.type === 'setRegister') {
-      return chip.updateRegister(preCondition.key, preCondition.value);
+      chip.updateRegister(preCondition.key, preCondition.value);
+      updateType = 'setRegister';
     } else if (preCondition.type === 'clearRegisters') {
       registerValues = [];
       _ref = processor.registerNames;
@@ -27,8 +30,10 @@ Automarker = {
         if (preCondition.value != null) val = preCondition.value;
         registerValues.push(val);
       }
-      return chip.updateAllRegisters(registerValues);
+      chip.updateAllRegisters(registerValues);
+      updateType = 'setAllRegisters';
     }
+    return updateType;
   },
   /*
   	[
@@ -100,8 +105,9 @@ Automarker = {
     };
   },
   mark: function(definition, workerScript, program, preConditions, postConditions, callback) {
-    var chip,
+    var chip, nextUpdate,
       _this = this;
+    nextUpdate = 'fromObject';
     chip = new Chip(definition, workerScript);
     return chip.onReady(function(processor) {
       var done, preConditionIndex;
@@ -117,11 +123,13 @@ Automarker = {
         }
       });
       chip.onUpdate(function(state, action, args) {
-        if (preConditionIndex < preConditions.length) {
-          preConditionIndex += 1;
-          return Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex - 1);
-        } else {
-          return chip.speedRun();
+        if (action === nextUpdate) {
+          if (preConditionIndex < preConditions.length) {
+            preConditionIndex += 1;
+            return nextUpdate = Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex - 1);
+          } else {
+            return chip.speedRun();
+          }
         }
       });
       chip.onRunUpdate(function(state) {
