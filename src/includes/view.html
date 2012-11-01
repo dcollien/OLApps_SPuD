@@ -208,22 +208,22 @@
 		};
 
 		var runTest = function(tests, i, callback) {
-			$('#spud').spud('automark', tests[i].setup, tests[i].test, callback);
+			$('#spud').spud('automark', tests[i].setup, tests[i].test, function(result) {
+				callback(i+1 ,result);
+			});
 		};
 
 		var runTests = function(tests, callback) {
 			var test;
-			var i = 0;
 			var results = [];
 
-			var nextTest = function(result) {
+			var nextTest = function(i, result) {
 				results.push(result);
 
 				if (console.log) {
 					console.log(tests, i, tests[i], result);
 				}
-
-				i += 1;
+				
 				if (result.completed && i < tests.length) {
 					runTest( tests, i, nextTest );
 				} else {
@@ -231,7 +231,7 @@
 				}
 			};
 
-			runTest( tests, i, nextTest );
+			runTest( tests, 0, nextTest );
 		};
 
 		$('#automark-button').click( function( ) {
