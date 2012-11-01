@@ -118,7 +118,17 @@ Automarker =
 					#console.log state
 					callback result
 
-			chip.setState program
+			newProgram = {
+				output: '',
+				isHalted: 0,
+				executionStep: 0,
+				numBellRings: 0,
+				pipelineStep: 0,
+				memory: program.memory.slice(0),
+				registers: program.registers.slice(0)
+			}
+			
+			chip.setState newProgram
 
 			
 

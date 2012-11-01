@@ -111,7 +111,7 @@ Automarker = {
     Automarker.nextUpdate = 'fromObject';
     chip = new Chip(definition, workerScript);
     return chip.onReady(function(processor) {
-      var done, preConditionIndex;
+      var done, newProgram, preConditionIndex;
       done = false;
       preConditionIndex = 0;
       chip.onReport(function(report) {
@@ -139,7 +139,16 @@ Automarker = {
           return callback(result);
         }
       });
-      return chip.setState(program);
+      newProgram = {
+        output: '',
+        isHalted: 0,
+        executionStep: 0,
+        numBellRings: 0,
+        pipelineStep: 0,
+        memory: program.memory.slice(0),
+        registers: program.registers.slice(0)
+      };
+      return chip.setState(newProgram);
     });
   }
 };
