@@ -2,6 +2,7 @@ var Automarker, Chip, CircuitBoard,
   __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 Automarker = {
+  nextUpdate: '',
   /*
   	[
   		{
@@ -12,15 +13,14 @@ Automarker = {
   	]
   */
   loadPrecondition: function(preConditions, chip, processor, i) {
-    var preCondition, reg, registerValues, updateType, val, _i, _len, _ref;
+    var preCondition, reg, registerValues, val, _i, _len, _ref;
     preCondition = preConditions[i];
-    updateType = '';
     if (preCondition.type === 'setMemory') {
+      Automarker.nextUpdate = 'setMemory';
       chip.updateMemory(preCondition.key, preCondition.value);
-      updateType = 'setMemory';
     } else if (preCondition.type === 'setRegister') {
+      Automarker.nextUpdate = 'setRegister';
       chip.updateRegister(preCondition.key, preCondition.value);
-      updateType = 'setRegister';
     } else if (preCondition.type === 'clearRegisters') {
       registerValues = [];
       _ref = processor.registerNames;
@@ -30,10 +30,10 @@ Automarker = {
         if (preCondition.value != null) val = preCondition.value;
         registerValues.push(val);
       }
+      Automarker.nextUpdate = 'setAllRegisters';
       chip.updateAllRegisters(registerValues);
-      updateType = 'setAllRegisters';
     }
-    return updateType;
+    return i + 1;
   },
   /*
   	[
@@ -105,9 +105,9 @@ Automarker = {
     };
   },
   mark: function(definition, workerScript, program, preConditions, postConditions, callback) {
-    var chip, nextUpdate,
+    var chip,
       _this = this;
-    nextUpdate = 'fromObject';
+    Automarker.nextUpdate = 'fromObject';
     chip = new Chip(definition, workerScript);
     return chip.onReady(function(processor) {
       var done, preConditionIndex;
@@ -123,10 +123,9 @@ Automarker = {
         }
       });
       chip.onUpdate(function(state, action, args) {
-        if (action === nextUpdate) {
+        if (action === Automarker.nextUpdate) {
           if (preConditionIndex < preConditions.length) {
-            preConditionIndex += 1;
-            return nextUpdate = Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex - 1);
+            return preConditionIndex = Automarker.loadPrecondition(preConditions, chip, processor, preConditionIndex);
           } else {
             return chip.speedRun();
           }
