@@ -101,7 +101,8 @@ Automarker = {
     return {
       completed: isCompleted,
       comment: comment,
-      mark: numCorrect
+      mark: numCorrect,
+      state: state
     };
   },
   mark: function(definition, workerScript, program, preConditions, postConditions, callback) {

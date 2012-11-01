@@ -90,7 +90,7 @@ Automarker =
 					isCompleted = false
 					break
 
-		return { completed: isCompleted, comment: comment, mark: numCorrect }
+		return { completed: isCompleted, comment: comment, mark: numCorrect, state: state }
 
 	mark: (definition, workerScript, program, preConditions, postConditions, callback) ->
 		Automarker.nextUpdate = 'fromObject'
