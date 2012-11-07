@@ -1430,7 +1430,7 @@ $.extend($.fn.spud, {
     circuitBoard = $(element).data('spud');
     return circuitBoard.automark(preConditions, postConditions, callback);
   },
-  busybeaver: function(callback) {
+  busybeaver: function(element, callback) {
     var circuitBoard;
     circuitBoard = $(element).data('spud');
     return circuitBoard.busybeaver(callback);

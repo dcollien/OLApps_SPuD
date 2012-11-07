@@ -69,7 +69,7 @@ $.extend $.fn.spud,
 		circuitBoard = $(element).data 'spud'
 		circuitBoard.automark preConditions, postConditions, callback
 
-	busybeaver: (callback) ->
+	busybeaver: (element, callback) ->
 		circuitBoard = $(element).data 'spud'
 		circuitBoard.busybeaver callback
 
