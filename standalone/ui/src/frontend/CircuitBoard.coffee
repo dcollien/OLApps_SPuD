@@ -72,13 +72,19 @@ class CircuitBoard
 			for sound in startSounds
 				@backgroundSound sound
 
+	disableSound: ->
+		@stopBackgroundSounds()
+		@soundEnabled = false
+
 	playSound: (sound) ->
 		return if not @soundEnabled
 		soundManager.play sound
 
 	backgroundSound: (sound) ->
 		@bgSounds = @bgSounds or []
-		@bgSounds.push sound
+
+		if not (sound in @bgSounds)
+			@bgSounds.push sound
 
 		return if not @soundEnabled
 
@@ -98,6 +104,9 @@ class CircuitBoard
 
 	automark: (preConditions, postConditions, callback) ->
 		Automarker.mark(@definition, @workerScript, @currentState, preConditions, postConditions, callback)
+
+	busybeaver: (callback) ->
+		BusyBeaver.run @definition, @workerScript, @currentState, callback
 
 	handleUpdate: (state, action, args) ->
 		@currentState = state

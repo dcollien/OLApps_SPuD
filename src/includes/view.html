@@ -23,6 +23,8 @@
 			<div style="width: 970px;" class="hide" id="activity-view">
 				<div id="spud"></div>
 			</div>
+			<a href="#" id="mute">Toggle Sound</a>
+			<br/>
 
 			{{#automarked}}
 			<hr/>
@@ -230,9 +232,25 @@
 			runTest( tests, 0, nextTest );
 		};
 
+		var runBusyBeaver = function() {
+			$('#spud').spud('busybeaver', function(result) {
+				console.log(result);
+			});
+		};
+		
 		$('#automark-button').click( function( ) {
+
+			{{#busybeaver}}
+			runBusyBeaver( );
+			{{/busybeaver}}
+			{{^busybeaver}}
 			runTests( tests, saveMarks );
+			{{/busybeaver}}
 			return false;
+		} );
+
+		$('#mute').click( function() {
+			$('#spud').spud('toggleSound');
 		} );
 	} );
 </script>

@@ -16,6 +16,20 @@ $.fn.extend
 			when 'enableSound'
 				return $(@).each (index, element) ->
 					self.enableSound element
+
+			when 'disableSound'
+				return $(@).each (index, element) ->
+					self.disableSound element
+
+			when 'toggleSound'
+				return $(@).each (index, element) ->
+					self.toggleSound element
+
+			when 'busybeaver'
+				callback = arguments[1]
+				return $(@).each (index, element) ->
+					self.busybeaver element, callback
+
 			else
 				options = arguments[0]
 
@@ -40,8 +54,23 @@ $.extend $.fn.spud,
 		circuitBoard = $(element).data 'spud'
 		circuitBoard.enableSound()
 
+	disableSound: (element) ->
+		circuitBoard = $(element).data 'spud'
+		circuitBoard.disableSound()
+
+	toggleSound: (element) ->
+		circuitBoard = $(element).data 'spud'
+		if circuitBoard.soundEnabled
+			circuitBoard.disableSound()
+		else
+			circuitBoard.enableSound()
+
 	automark: (element, preConditions, postConditions, callback) ->
 		circuitBoard = $(element).data 'spud'
 		circuitBoard.automark preConditions, postConditions, callback
+
+	busybeaver: (callback) ->
+		circuitBoard = $(element).data 'spud'
+		circuitBoard.busybeaver callback
 
 
