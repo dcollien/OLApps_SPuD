@@ -1,4 +1,4 @@
-var Automarker, Chip, CircuitBoard,
+var Automarker, BusyBeaver, Chip, CircuitBoard,
   __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 Automarker = {
@@ -146,6 +146,66 @@ Automarker = {
         pipelineStep: 0,
         memory: program.memory.slice(0),
         registers: program.registers.slice(0)
+      };
+      return chip.setState(newProgram);
+    });
+  }
+};
+
+BusyBeaver = {
+  getProgramSize: function(program) {
+    var lastCell;
+    lastCell = program.memory.length - 1;
+    while (program.memory[lastCell] === 0) {
+      lastCell--;
+    }
+    return lastCell + 1;
+  },
+  run: function(definition, workerScript, program, callback) {
+    var chip, programSize,
+      _this = this;
+    programSize = BusyBeaver.getProgramSize(program);
+    chip = new Chip(definition, workerScript);
+    return chip.onReady(function(processor) {
+      var done, i, newProgram, preConditionIndex, registers, _ref;
+      done = false;
+      preConditionIndex = 0;
+      chip.onReport(function(report) {
+        if (report.reason === 'runPaused') {
+          callback({
+            terminated: false,
+            state: null,
+            status: 'Maximum Execution Exceeded'
+          });
+          return done = true;
+        }
+      });
+      chip.onRunUpdate(function(state) {
+        if (state.isHalted && !done) {
+          callback({
+            terminated: state.isHalted,
+            state: state,
+            status: 'Done',
+            size: programSize
+          });
+          return done = true;
+        }
+      });
+      chip.onUpdate(function(state, action, args) {
+        if (action === 'fromObject') return chip.speedRun();
+      });
+      registers = program.registers.slice(0);
+      for (i = 0, _ref = registers.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+        registers[i] = 0;
+      }
+      newProgram = {
+        output: '',
+        isHalted: 0,
+        executionStep: 0,
+        numBellRings: 0,
+        pipelineStep: 0,
+        memory: program.memory.slice(0),
+        registers: registers
       };
       return chip.setState(newProgram);
     });
@@ -420,6 +480,11 @@ CircuitBoard = (function() {
     }
   };
 
+  CircuitBoard.prototype.disableSound = function() {
+    this.stopBackgroundSounds();
+    return this.soundEnabled = false;
+  };
+
   CircuitBoard.prototype.playSound = function(sound) {
     if (!this.soundEnabled) return;
     return soundManager.play(sound);
@@ -429,7 +494,7 @@ CircuitBoard = (function() {
     var loopSound,
       _this = this;
     this.bgSounds = this.bgSounds || [];
-    this.bgSounds.push(sound);
+    if (!(__indexOf.call(this.bgSounds, sound) >= 0)) this.bgSounds.push(sound);
     if (!this.soundEnabled) return;
     loopSound = function(id) {
       return soundManager.play(id, {
@@ -454,6 +519,10 @@ CircuitBoard = (function() {
 
   CircuitBoard.prototype.automark = function(preConditions, postConditions, callback) {
     return Automarker.mark(this.definition, this.workerScript, this.currentState, preConditions, postConditions, callback);
+  };
+
+  CircuitBoard.prototype.busybeaver = function(callback) {
+    return BusyBeaver.run(this.definition, this.workerScript, this.currentState, callback);
   };
 
   CircuitBoard.prototype.handleUpdate = function(state, action, args) {
@@ -1302,6 +1371,19 @@ $.fn.extend({
         return $(this).each(function(index, element) {
           return self.enableSound(element);
         });
+      case 'disableSound':
+        return $(this).each(function(index, element) {
+          return self.disableSound(element);
+        });
+      case 'toggleSound':
+        return $(this).each(function(index, element) {
+          return self.toggleSound(element);
+        });
+      case 'busybeaver':
+        callback = arguments[1];
+        return $(this).each(function(index, element) {
+          return self.busybeaver(element, callback);
+        });
       default:
         options = arguments[0];
         if (typeof options === 'string') {
@@ -1329,9 +1411,28 @@ $.extend($.fn.spud, {
     circuitBoard = $(element).data('spud');
     return circuitBoard.enableSound();
   },
+  disableSound: function(element) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    return circuitBoard.disableSound();
+  },
+  toggleSound: function(element) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    if (circuitBoard.soundEnabled) {
+      return circuitBoard.disableSound();
+    } else {
+      return circuitBoard.enableSound();
+    }
+  },
   automark: function(element, preConditions, postConditions, callback) {
     var circuitBoard;
     circuitBoard = $(element).data('spud');
     return circuitBoard.automark(preConditions, postConditions, callback);
+  },
+  busybeaver: function(callback) {
+    var circuitBoard;
+    circuitBoard = $(element).data('spud');
+    return circuitBoard.busybeaver(callback);
   }
 });
