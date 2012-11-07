@@ -97,11 +97,17 @@ catch err
 	tests = []
 	automarked = false
 
+busybeaver = false
+if tests is 'busybeaver'
+	automarked = true
+	busybeaver = true
+
 view =
 	definition: data.definition
 	startingState: data.startingState
 	tests: data.tests
 	automarked: automarked
+	busybeaver: busybeaver
 	spud_js: (mediaURL 'js/spud.js')
 	soundmanager2_js: (mediaURL 'js/soundmanager2.js')
 	swf_url: (mediaURL 'swf/')
