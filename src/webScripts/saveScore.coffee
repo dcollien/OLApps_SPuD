@@ -16,22 +16,25 @@ if request.method is 'POST' and request.data.action == 'saveScore'
 		# set submission data
 		try
 			submissionData = OpenLearning.activity.saveSubmission request.user, submission, 'file'
-			view.url = submissionData.url
+		catch err
+			error = 'Something went wrong: Unable to save submission'
 
+		try			
 			if (result.terminated)
 				scoreData = {
 					size: result.size,
 					score: result.state.output.length,
 					user: request.user
 				}
+				
+				OpenLearning.page.setUserData request.user, 'busybeaver' + size, scoreData
 
-				OpenLearning.page.setUserData request.user, 'busybeaver', scoreData
-			
-			submitSuccess = OpenLearning.activity.submit request.user
-			response.writeJSON { success: true }
 		catch err
-			error = 'Something went wrong: Unable to save data'
-
+			error = 'Something went wrong: Unable to save to scoreboard'
+else
+	error = 'Provide post data'
 
 if error?
 	response.writeJSON { success: false, error: error }
+else
+	response.writeJSON { success: true }

@@ -240,7 +240,7 @@
 					type: 'POST',
 					data: {
 						action: 'saveScore',
-						result: result
+						result: JSON.stringify(result)
 					}
 				}).done( function(data) {
 					if (data.success) {
