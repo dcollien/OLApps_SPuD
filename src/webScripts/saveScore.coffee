@@ -27,8 +27,8 @@ if request.method is 'POST' and request.data.action == 'saveScore'
 					user: request.user
 				}
 				
-				OpenLearning.page.setUserData request.user, 'busybeaver' + size, scoreData
-
+				OpenLearning.page.setUserData request.user, 'busybeaver' + result.size, scoreData
+				
 		catch err
 			error = 'Something went wrong: Unable to save to scoreboard'
 else

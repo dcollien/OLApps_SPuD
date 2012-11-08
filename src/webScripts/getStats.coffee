@@ -1,6 +1,6 @@
 response.setHeader 'Content-Type', 'application/json'
 
-size = request.data.size
+size = request.args.size
 if not size?
 	size = 3
 
