@@ -234,10 +234,26 @@
 
 		var runBusyBeaver = function() {
 			$('#spud').spud('busybeaver', function(result) {
-				console.log(result);
+				$.ajax({
+					url: './saveScore',
+					dataType: 'json',
+					type: 'POST',
+					data: {
+						action: 'saveScore',
+						result: result
+					}
+				}).done( function(data) {
+					if (data.success) {
+						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
+						window.app.resize();
+						window.app.sendMessage('updateProgress');
+					} else {
+						//console.log( 'Error:', data );
+					}
+				} );
 			});
 		};
-		
+
 		$('#automark-button').click( function( ) {
 
 			{{#busybeaver}}

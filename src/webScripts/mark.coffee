@@ -1,4 +1,4 @@
-response.setHeader 'Content-Type', 'text/json'
+response.setHeader 'Content-Type', 'application/json'
 
 marksObject = {}
 

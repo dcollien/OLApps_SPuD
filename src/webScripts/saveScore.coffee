@@ -1,21 +1,15 @@
 response.setHeader 'Content-Type', 'application/json'
 
-if request.method is 'POST'
+if request.method is 'POST' and request.data.action == 'saveScore'
 	try
-		state = JSON.parse request.data.state
+		result = JSON.parse request.data.result
 	catch err
 		error = err
 
 	if not error?
-		code = request.data.code
-
 		submission = {
-			file: {
-				filename: 'code.txt'
-				data: code
-			},
 			metadata: {
-				state: state
+				busybeaver: result
 			}
 		}
 
@@ -23,6 +17,16 @@ if request.method is 'POST'
 		try
 			submissionData = OpenLearning.activity.saveSubmission request.user, submission, 'file'
 			view.url = submissionData.url
+
+			if (result.terminated)
+				scoreData = {
+					size: result.size,
+					score: result.state.output.length,
+					user: request.user
+				}
+
+				OpenLearning.page.setUserData request.user, 'busybeaver', scoreData
+			
 			submitSuccess = OpenLearning.activity.submit request.user
 			response.writeJSON { success: true }
 		catch err

@@ -15,8 +15,8 @@
 			$(document).ready( function() {
 				var url = './getStats';
 				var scores = $.getJSON(url);
-				scores.done(function() {
-					
+				scores.done(function(scoreData) {
+					$('#scoreboard').text(JSON.stringify(scoreData));
 				});
 			};
 		</script>
