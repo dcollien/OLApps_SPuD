@@ -5,9 +5,17 @@
     <link rel="stylesheet" href="/common/bootstrap/css/bootstrap.min.css" type="text/css" media="screen" charset="utf-8">
     <script src="/common/jquery.min.js"></script>
     {{&app_init_js}}
+    <style type="text/css">
+      .table-item {
+        font-size: 32px;
+        font-weight: 300;
+        color: #444;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
+      <div style="margin-bottom: 8px;"><a href="./view" class="btn">&larr; Back to Emulator</a></div>
       <div class="navbar">
         <div class="navbar-inner">
           <a class="brand" href="#">Program Size:</a>
@@ -51,20 +59,36 @@
             var $td = $('<td class="user">');
             $td.data('profileName', score.user);
             $td.text(score.user);
-            
+
             $tr.append($td);
-            $tr.append($('<td>').text(score.score));
-            $tr.append($('<td>').text(score.size));
+            $tr.append($('<td>').html( $('<span class="table-item">').text(score.score) ));
+            $tr.append($('<td>').html( $('<span class="table-item">').text(score.size) ));
 
             $tbody.append($tr);
           }
+
+          if (scoreData.length > 0) {
+            $('#scoreboard').html($table);
+          } else {
+            $('#scoreboard').text( 'None here yet. Be the first to submit one!' );
+          }
+
+          $('#scoreboard').find('.user').each( function(index, element) {
+            $.getJSON('./getUserData?user=' + $(element).data('profileName')).done( function(userData) {
+              $(element).html('<div style="line-height: 48px"><img src="' + userData.standardAvatar + '"> <b>' + userData.fullName + '</b></div>');
+            } );            
+          } );
         });
+
+
       };
-      $(document).ready( loadScores );
+      $(document).ready(loadScores);
 
       $('.nav li').click( function( ) {
         size = parseInt($(this).text());
         loadScores();
+        $('.nav li.active').removeClass('active');
+        $(this).addClass('active');
       } );
     </script>
   </body>

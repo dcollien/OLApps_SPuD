@@ -19,7 +19,12 @@
 		{{&app_init_js}}
 	</head>
 	<body>
-		<div style="height: 780px" id="outer-container">
+		<div style="height: 880px" id="outer-container">
+			{{#busybeaver}}
+			<div style="text-align:center"><a href="./stats" class="btn"><i class="icon-list-alt"></i> View Busy Beaver Scoreboard</a></div>
+			<hr/>
+			{{/busybeaver}}
+
 			<div style="width: 970px;" class="hide" id="activity-view">
 				<div id="spud"></div>
 			</div>
@@ -234,6 +239,11 @@
 
 		var runBusyBeaver = function() {
 			$('#spud').spud('busybeaver', function(result) {
+
+				if (!result.terminated) {
+					alert('Program did not terminate before it exceeded the maximum number of cycles.');
+				}
+
 				$.ajax({
 					url: './saveScore',
 					dataType: 'json',
@@ -244,7 +254,7 @@
 					}
 				}).done( function(data) {
 					if (data.success) {
-						$('#results').prepend('<b style="color:#484">Result Saved</b><hr/>');
+						$('#results').html('Printed Digits: ' + result.state.output.length).prepend('<b style="color:#484">Result Saved</b><hr/>');
 						window.app.resize();
 						window.app.sendMessage('updateProgress');
 					} else {
@@ -255,19 +265,25 @@
 		};
 
 		$('#automark-button').click( function( ) {
-
-			{{#busybeaver}}
-			runBusyBeaver( );
-			{{/busybeaver}}
-			{{^busybeaver}}
-			runTests( tests, saveMarks );
-			{{/busybeaver}}
+			$('#results').html( $('<div style="text-align: center"><br/><img src="{{loader_gif}}"></div>') ).show();
+			setTimeout( function( ) {
+				{{#busybeaver}}
+				runBusyBeaver( );
+				{{/busybeaver}}
+				{{^busybeaver}}
+				runTests( tests, saveMarks );
+				{{/busybeaver}}
+			}, 200 );
 			return false;
 		} );
 
 		$('#mute').click( function() {
 			$('#spud').spud('toggleSound');
 		} );
+
+		$(document).ready(function() {
+			window.app.resize();
+		});
 	} );
 </script>
 
