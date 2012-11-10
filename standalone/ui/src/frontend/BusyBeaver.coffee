@@ -15,9 +15,12 @@ BusyBeaver =
 
 			chip.onReport (report) =>
 				if report.reason is 'runPaused'
-					callback { terminated: false, state: null, status: 'Maximum Execution Exceeded' }
-					done = true
-
+					if (confirm "The chip has been running for a long time. Do you want it to keep going?")
+						chip.speedRun()
+					else
+						callback { terminated: false, state: null, status: 'Maximum Execution Exceeded' }
+						done = true
+			
 			chip.onRunUpdate (state) =>
 				if state.isHalted and not done
 					callback { terminated: state.isHalted, state: state, status: 'Done', size: programSize }

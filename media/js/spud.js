@@ -172,12 +172,16 @@ BusyBeaver = {
       preConditionIndex = 0;
       chip.onReport(function(report) {
         if (report.reason === 'runPaused') {
-          callback({
-            terminated: false,
-            state: null,
-            status: 'Maximum Execution Exceeded'
-          });
-          return done = true;
+          if (confirm("The chip has been running for a long time. Do you want it to keep going?")) {
+            return chip.speedRun();
+          } else {
+            callback({
+              terminated: false,
+              state: null,
+              status: 'Maximum Execution Exceeded'
+            });
+            return done = true;
+          }
         }
       });
       chip.onRunUpdate(function(state) {
