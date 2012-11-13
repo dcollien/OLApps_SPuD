@@ -581,8 +581,8 @@ class CircuitBoard
 		hoverRegister = (regInput) =>
 			if (regInput.attr 'id') is 'register-IP'
 
-				val = @parseValue regInput.val()
-				
+				val = @parseValue regInput.val(), @valueMode
+
 				$('#memory-' + val.toString(16)).addClass 'increment-highlight'
 				@instructionHelp.text 'Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')'
 

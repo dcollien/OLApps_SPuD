@@ -474,7 +474,7 @@ CircuitBoard = (function() {
               continue;
             }
             name = parts[0], value = parts[1];
-            _results.push(this.chip.updateRegister(name, parseInt(value)));
+            _results.push(this.chip.updateRegister(name, parseInt(value, 10)));
           } else {
             _results.push(void 0);
           }
@@ -765,9 +765,20 @@ CircuitBoard = (function() {
       mode = this.valueMode;
     }
     if (mode === "decimal") {
-      return parseInt(value).toString();
+      return parseInt(value, 10).toString();
     } else {
-      return parseInt(value).toString(16).toUpperCase();
+      return Number('' + value).toString(16).toUpperCase();
+    }
+  };
+
+  CircuitBoard.prototype.parseValue = function(value, mode) {
+    if (!(mode != null)) {
+      mode = this.valueMode;
+    }
+    if (mode === "decimal") {
+      return Number('' + value);
+    } else {
+      return parseInt(value, 16);
     }
   };
 
@@ -908,7 +919,7 @@ CircuitBoard = (function() {
       return _this.chip.updateMemory(address, parseInt(value, 16));
     };
     changeMemoryDecimal = function(address, value) {
-      return _this.chip.updateMemory(address, parseInt(value));
+      return _this.chip.updateMemory(address, parseInt(value, 10));
     };
     hoverCell = function(cell) {
       var address, instruction;
@@ -1058,16 +1069,16 @@ CircuitBoard = (function() {
       return _this.chip.updateRegister(name, parseInt(value, 16));
     };
     changeRegisterDecimal = function(name, value) {
-      return _this.chip.updateRegister(name, parseInt(value));
+      return _this.chip.updateRegister(name, parseInt(value, 10));
     };
     hoverRegister = function(regInput) {
       var instruction, val;
       if ((regInput.attr('id')) === 'register-IP') {
-        val = parseInt(regInput.val(), 16);
-        $('#memory-' + val).addClass('increment-highlight');
+        val = _this.parseValue(regInput.val(), _this.valueMode);
+        $('#memory-' + val.toString(16)).addClass('increment-highlight');
         return _this.instructionHelp.text('Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')');
       } else if ((regInput.attr('id')) === 'register-IS') {
-        instruction = _this.properties.instructions[parseInt(regInput.val(), 16)];
+        instruction = _this.properties.instructions[_this.parseValue(regInput.val())];
         if (instruction != null) {
           return _this.instructionHelp.text(regInput.val() + ': ' + instruction.description);
         }
@@ -1188,7 +1199,7 @@ CircuitBoard = (function() {
         var cellNum, id;
         id = $(elt).attr('id');
         id = id.slice('memory-cell-header-'.length);
-        cellNum = parseInt(id);
+        cellNum = parseInt(id, 10);
         if (_this.valueMode === "decimal") {
           return $(elt).text(_this.formatValue(cellNum));
         } else {
@@ -1290,7 +1301,7 @@ CircuitBoard = (function() {
       if (this.hexOption.prop('checked')) {
         val = parseInt(instruction, 16);
       } else {
-        val = parseInt(instruction);
+        val = this.parseValue(instruction);
       }
       if (instruction !== '' && !(isNaN(val))) {
         memory.push(val);
