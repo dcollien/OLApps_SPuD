@@ -59,7 +59,7 @@ class CircuitBoard
 							continue
 
 						[name, value] = parts
-						@chip.updateRegister name, parseInt(value)
+						@chip.updateRegister name, parseInt(value, 10)
 			catch error
 				console.log error
 
@@ -309,9 +309,19 @@ class CircuitBoard
 			mode = @valueMode
 
 		if mode is "decimal"
-			parseInt(value).toString()
+			parseInt(value, 10).toString()
 		else
-			parseInt(value).toString(16).toUpperCase()
+			Number(''+value).toString(16).toUpperCase()
+	
+	parseValue: (value, mode) ->
+		if not mode?
+			mode = @valueMode
+
+		if mode is "decimal"
+			Number(''+value)
+		else
+			parseInt(value, 16)
+
 
 	togglePower: ->
 		if not @isReady then return
@@ -425,10 +435,10 @@ class CircuitBoard
 
 	buildMemoryTable: (pageNum, numRows, numCols, properties) ->
 		changeMemory   = (address, value) => @chip.updateMemory address, parseInt(value, 16)
-		changeMemoryDecimal   = (address, value) => @chip.updateMemory address, parseInt(value)
+		changeMemoryDecimal   = (address, value) => @chip.updateMemory address, parseInt(value, 10)
 		hoverCell = (cell) =>
 			address = (cell.attr 'id').replace 'memory-', ''
-			instruction = properties.instructions[parseInt(cell.val(), 16)]
+			instruction = properties.instructions[@parseValue(cell.val())]
 
 			if instruction?
 				@instructionHelp.html '<span style="display:inline-block; float:left; color: #888; padding: 0px;">[<span style="color:#444">' + address + '</span>]</span> <span style="color:#666">' + cell.val() + ':</span> ' + instruction.description
@@ -566,18 +576,18 @@ class CircuitBoard
 		#properties.numMemoryAddresses = 1024
 
 		changeRegister = (name, value) => @chip.updateRegister name, parseInt(value, 16)
-		changeRegisterDecimal = (name, value) => @chip.updateRegister name, parseInt(value)
+		changeRegisterDecimal = (name, value) => @chip.updateRegister name, parseInt(value, 10)
 
 		hoverRegister = (regInput) =>
 			if (regInput.attr 'id') is 'register-IP'
 
-				val = parseInt regInput.val(), 16
+				val = @parseValue regInput.val()
 
 				$('#memory-' + val).addClass 'increment-highlight'
 				@instructionHelp.text 'Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')'
 
 			else if (regInput.attr 'id') is 'register-IS'
-				instruction = @properties.instructions[parseInt(regInput.val(), 16)]
+				instruction = @properties.instructions[@parseValue(regInput.val())]
 
 				if instruction?
 					@instructionHelp.text regInput.val() + ': ' + instruction.description
@@ -712,7 +722,7 @@ class CircuitBoard
 			$('.memory-cell-header').each (index, elt) =>
 				id = $(elt).attr 'id'
 				id = id.slice ('memory-cell-header-'.length)
-				cellNum = parseInt id
+				cellNum = parseInt id, 10
 				if @valueMode is "decimal"
 					$(elt).text @formatValue(cellNum)
 				else
@@ -838,7 +848,7 @@ class CircuitBoard
 			if @hexOption.prop 'checked'
 				val = parseInt instruction, 16 # hex
 			else
-				val = parseInt instruction
+				val = @parseValue instruction
 
 			if instruction isnt '' and not (isNaN val)
 				memory.push val
