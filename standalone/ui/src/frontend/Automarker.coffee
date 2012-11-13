@@ -73,6 +73,8 @@ Automarker =
 						correct = match[0...output.length] is output
 					else if postCondition.parameter is "rendswith"
 						correct = match[-output.length..] is output
+					else if postCondition.parameter is "not"
+						correct = output isnt match
 					else
 						correct = output is match
 

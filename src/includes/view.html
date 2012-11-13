@@ -239,7 +239,8 @@
 
 		var runBusyBeaver = function() {
 			$('#spud').spud('busybeaver', function(result) {
-
+				$('#results').html('');
+				
 				if (!result.terminated) {
 					alert('Program did not terminate before it exceeded the maximum number of cycles.');
 				}

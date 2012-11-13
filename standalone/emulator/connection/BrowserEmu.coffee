@@ -3,6 +3,7 @@ class BrowserEmu
 	
 	constructor: ->
 		@emu = new Emu(@)
+		@emu.maxCycles = 32000
 		@onmessage = ->
 	
 	send: (method, data) ->
