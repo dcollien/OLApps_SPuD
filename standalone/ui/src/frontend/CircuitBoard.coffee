@@ -438,7 +438,7 @@ class CircuitBoard
 		changeMemoryDecimal   = (address, value) => @chip.updateMemory address, parseInt(value, 10)
 		hoverCell = (cell) =>
 			address = (cell.attr 'id').replace 'memory-', ''
-			instruction = properties.instructions[parseInt(cell.val(), 16)]
+			instruction = properties.instructions[@parseValue(cell.val())]
 
 			if instruction?
 				@instructionHelp.html '<span style="display:inline-block; float:left; color: #888; padding: 0px;">[<span style="color:#444">' + address + '</span>]</span> <span style="color:#666">' + cell.val() + ':</span> ' + instruction.description
@@ -583,7 +583,7 @@ class CircuitBoard
 
 				val = @parseValue regInput.val(), @valueMode
 
-				$('#memory-' + val.toString(16)).addClass 'increment-highlight'
+				$('#memory-' + val.toString(10)).addClass 'increment-highlight'
 				@instructionHelp.text 'Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')'
 
 			else if (regInput.attr 'id') is 'register-IS'

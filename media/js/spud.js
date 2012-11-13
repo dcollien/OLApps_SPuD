@@ -924,7 +924,7 @@ CircuitBoard = (function() {
     hoverCell = function(cell) {
       var address, instruction;
       address = (cell.attr('id')).replace('memory-', '');
-      instruction = properties.instructions[parseInt(cell.val(), 16)];
+      instruction = properties.instructions[_this.parseValue(cell.val())];
       if (instruction != null) {
         return _this.instructionHelp.html('<span style="display:inline-block; float:left; color: #888; padding: 0px;">[<span style="color:#444">' + address + '</span>]</span> <span style="color:#666">' + cell.val() + ':</span> ' + instruction.description);
       }
@@ -1075,7 +1075,7 @@ CircuitBoard = (function() {
       var instruction, val;
       if ((regInput.attr('id')) === 'register-IP') {
         val = _this.parseValue(regInput.val(), _this.valueMode);
-        $('#memory-' + val.toString(16)).addClass('increment-highlight');
+        $('#memory-' + val.toString(10)).addClass('increment-highlight');
         return _this.instructionHelp.text('Instruction Pointer at Address: ' + val + ' (0x' + val.toString(16).toUpperCase() + ')');
       } else if ((regInput.attr('id')) === 'register-IS') {
         instruction = _this.properties.instructions[_this.parseValue(regInput.val())];
