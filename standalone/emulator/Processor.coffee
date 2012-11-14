@@ -29,7 +29,7 @@ class Processor
 			if instruction
 				ipIncrement = instruction.ipIncrement
 
-			state.setRegister 'IP', ((ip + ipIncrement) % @numMemoryAddresses)
+			state.setRegister 'IP', ip + ipIncrement
 	
 		exec = (state) ->
 			instructionNum = state.getRegister 'IS'

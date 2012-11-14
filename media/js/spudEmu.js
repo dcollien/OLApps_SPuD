@@ -1105,7 +1105,7 @@ Processor = (function() {
       if (instruction) {
         ipIncrement = instruction.ipIncrement;
       }
-      return state.setRegister('IP', (ip + ipIncrement) % this.numMemoryAddresses);
+      return state.setRegister('IP', ip + ipIncrement);
     };
     exec = function(state) {
       var instruction, instructionNum;
@@ -1473,6 +1473,9 @@ State = (function() {
     var newValue, registerIndex;
     registerIndex = this.processor.registerIndexLookup[registerName];
     newValue = this.constrainRegister(value);
+    if (registerName === 'IP') {
+      newValue = this.constrainAddress(newValue);
+    }
     this.registers[registerIndex] = newValue;
     return this.changeHandler(this.eventFor('setRegister', registerName, newValue));
   };

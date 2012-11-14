@@ -1,3 +1,8 @@
+body {
+	margin: 0px;
+	padding: 0px;
+}
+
 .board-bg {
 	position: relative;
 	background-image: url('BoardOff.png');
@@ -152,7 +157,7 @@
 	left: 8px;
 
 	color: rgba( 255, 255, 255, 0.45 );
-	font-family: 'LastWordsThin', monospace;
+	font-family: 'LastWordsThin', 'Lekton', monospace;
 	font-size: 14px;
 }
 
@@ -180,15 +185,15 @@
 
 	white-space: pre;
 
-	font-family: 'LCDDotRegular', monospace;
+	font-family: 'LCDDotRegular', 'VT323', sans-serif;
 	font-size: 20px;
 	line-height: 24px;
 	word-wrap: break-word;
-
+	
 	left: 54px;
 	top: 422px;
 
-	width: 506px;
+	width: 504px;
 	height: 92px;
 
 	margin-top: 4px;
@@ -205,9 +210,9 @@
 .board-chipbox {
 	position: absolute;
 	top: 20px;
-	left: 570px;
+	left: 557px;
 
-	width: 380px;
+	width: 375px;
 	min-height: 300px;
 
 	-webkit-border-radius: 10px;
@@ -464,4 +469,3 @@
 	top: 142px;
 	margin-top: -32px;
 }
-

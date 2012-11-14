@@ -51,6 +51,10 @@ class State
 	setRegister: (registerName, value) ->
 		registerIndex = @processor.registerIndexLookup[registerName]
 		newValue = @constrainRegister value
+
+		if registerName is 'IP'
+			newValue = @constrainAddress newValue
+		
 		@registers[registerIndex] = newValue
 
 		@changeHandler (@eventFor 'setRegister', registerName, newValue)
