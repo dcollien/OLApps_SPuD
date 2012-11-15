@@ -189,6 +189,7 @@ body {
 	font-size: 20px;
 	line-height: 24px;
 	word-wrap: break-word;
+	white-space: pre-wrap;
 	
 	left: 54px;
 	top: 422px;
