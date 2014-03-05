@@ -13,6 +13,8 @@ class CircuitBoard
 		@build()
 		@valueMode = "decimal"
 
+		@testCallbacks = {}
+
 		@chip.onReady (event) =>
 			if not @isReady
 				@buildInspector event
@@ -32,6 +34,10 @@ class CircuitBoard
 
 		@chip.onReport (report) =>
 			alert report.message
+
+		@chip.onTestComplete (data) =>
+			if @testCallbacks[data.name]?
+				@testCallbacks[data.name] data
 
 	loadFromStartingState: () ->
 		startingState = @startingState
@@ -103,7 +109,15 @@ class CircuitBoard
 		@bgSounds = []
 
 	automark: (preConditions, postConditions, callback) ->
-		Automarker.mark(@definition, @workerScript, @currentState, preConditions, postConditions, callback)
+		testName = new Date().getTime() + '' + Math.random()
+
+		@testCallbacks[testName] = (data) =>
+			callback { completed: data.isSuccess, comment: data.feedback }
+
+		memory = @currentState.memory.slice 0
+		registers = @currentState.registers.slice 0
+
+		@chip.runTest(testName, preConditions, postConditions, registers, memory) 
 
 	busybeaver: (callback) ->
 		BusyBeaver.run @definition, @workerScript, @currentState, callback

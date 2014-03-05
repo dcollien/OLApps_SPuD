@@ -8,6 +8,7 @@ class Chip
 		@updateCallbacks = []
 		@runUpdateCallbacks = []
 		@reportCallbacks = []
+		@testCompleteCallbacks = []
 
 		if @supportsWorkers()
 			# init web worker script
@@ -43,6 +44,9 @@ class Chip
 
 	onRunUpdate: (callback) ->
 		@runUpdateCallbacks.push callback
+
+	onTestComplete: (callback) ->
+		@testCompleteCallbacks.push callback
 
 	onReport: (callback) ->
 		@reportCallbacks.push callback
@@ -99,6 +103,23 @@ class Chip
 				}
 			} )
 
+	runTest: (testName, setup, checks, registers, memory, maxCycles=null) ->
+		dataObj = {
+			'testName': testName
+			'setup': setup
+			'checks': checks
+			'registers': registers
+			'memory': memory
+		}
+
+		if maxCycles
+			dataObj.maxCycles = maxCycles
+
+		@worker.postMessage JSON.stringify( {
+				method: 'test'
+				data: dataObj
+			} )
+
 	receive: (method, data) ->
 		switch method
 			when 'ready'
@@ -124,7 +145,10 @@ class Chip
 				
 				for callback in @reportCallbacks
 					callback data
-			
+
+			when 'test-complete'
+				for callback in @testCompleteCallbacks
+					callback data
 			else
 				# no idea
 

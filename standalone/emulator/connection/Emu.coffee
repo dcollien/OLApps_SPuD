@@ -17,7 +17,11 @@ class Emu
 			else
 				@connection.send 'update', event
 
+		testProcessorChangeHandler = (event) =>
+
+
 		@processor = new InterpretedProcessor( definition, changeHandler )
+		@testProcessor = new InterpretedProcessor( definition, testProcessorChangeHandler )
 
 	handleMessage: (method, data) ->
 		switch method
@@ -74,3 +78,111 @@ class Emu
 						@connection.send 'report', { message: 'Maximum number of execution cycles exceeded. Execution paused.', reason: 'runPaused' }
 					@isRunning = false
 					@connection.send 'runUpdate', @processor.state.toObject()
+
+			when 'test'
+				if @testProcessor?
+					testName = data.testName # e.g. 'check all the things'
+					registers = data.registers # e.g. { 'IP': 0, 'IS': 0, 'R0': 0 }
+					memory = data.memory # e.g. [0, 0, 0, 0 ....]
+					setup = data.setup
+					checks = data.checks
+
+					maxCycles = @maxCycles
+					if data.maxCycles?
+						maxCycles = data.maxCycles
+
+					@testProcessor.state.reset()
+					
+					# load in the initial state
+					for register, value of registers
+						@testProcessor.state.setRegister register, value
+
+					for i in [0...memory.length]
+						@testProcessor.state.setMemory i, memory[i]
+
+					# make any setup modifications
+					for step in setup
+						switch step.type
+							when 'setMemory'
+								@testProcessor.state.setMemory step.key, step.value
+							when 'setRegister'
+								@testProcessor.state.setRegister step.key, step.value
+							when 'clearRegisters'
+								val = 0
+								if step.value?
+									val = step.value
+
+								regValues = []
+								for register in @testProcessor.registerNames
+									regValues.push val
+
+								@testProcessor.state.setAllRegisters regValues
+
+					# run the testProcessor
+					@testProcessor.run maxCycles
+					isHalted = @testProcessor.state.isHalted
+
+					isSuccess = false
+					numCorrect = 0
+					feedback = ''
+
+					if isHalted
+						# it's halted properly, let's check if it was correct
+						isSuccess = true
+						state = @testProcessor.state.toObject()
+
+						for check in checks
+							correct = false
+
+							switch check.type
+								when 'register'
+									registerIndex = @testProcessor.registerIndexLookup[check.parameter]
+									correct = state.registers[registerIndex] is check.match
+
+								when 'memory'
+									correct = state.memory[check.parameter] is check.match
+
+								when 'output'
+									match = check.match.trim()
+									output = (''+state.output).trim()
+
+									if check.parameter is "startswith"
+										correct = output[0...match.length] is match
+									else if check.parameter is "endswith"
+										correct = output[-match.length..] is match
+									else if check.parameter is "rstartswith"
+										correct = match[0...output.length] is output
+									else if check.parameter is "rendswith"
+										correct = match[-output.length..] is output
+									else if check.parameter is "not"
+										correct = output isnt match
+									else
+										correct = output is match
+
+								when 'numRings'
+									correct = state.numBellRings is check.match
+
+							if correct
+								feedback += (check.correctComment) + '\n'
+								numCorrect += 1
+							else
+								feedback += (check.incorrectComment) + '\n'
+								if check.optional
+									# go onto the next check
+									continue
+								else
+									# stop checking, it's broken
+									isSuccess = false
+									break
+					else
+						# didn't halt
+						feedback += 'Did not halt!\n'
+						isSuccess = false
+
+					@connection.send 'test-complete', {
+						'name': testName
+						'isSuccess': isSuccess
+						'feedback': feedback
+						'numCorrect': numCorrect
+					}
+
