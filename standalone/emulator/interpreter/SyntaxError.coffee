@@ -8,3 +8,5 @@ class SyntaxError extends Error
 			Error.call @, "Invalid syntax"
 
 		Error.captureStackTrace @, arguments.callee
+
+module?.exports = SyntaxError

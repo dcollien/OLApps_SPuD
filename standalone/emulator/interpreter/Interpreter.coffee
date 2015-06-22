@@ -1,3 +1,8 @@
+if module?.exports
+	SyntaxError = require './SyntaxError'
+	Symbol      = require './Symbol'
+	Token       = require './Token'
+
 class Interpreter
 	constructor: (@tokens, @state, @context) ->
 		@tokenPos = 0
@@ -336,3 +341,5 @@ Interpreter.interpretCondition = (conditionTokens, state, context) ->
 Interpreter.interpretExpression = (expressionTokens, state, context) ->
 	interpreter = new Interpreter( expressionTokens, state, context )
 	return interpreter.intExpression( )
+
+module?.exports = Interpreter

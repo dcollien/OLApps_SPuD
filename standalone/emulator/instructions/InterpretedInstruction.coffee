@@ -1,3 +1,9 @@
+if module?.exports
+	Instruction = require '../Instruction'
+	Symbol      = require '../interpreter/Symbol'
+	Tokeniser   = require '../interpreter/Tokeniser'
+	Interpreter = require '../interpreter/Interpreter'
+
 class InterpretedInstruction extends Instruction
 	constructor: (description, ipIncrement, code) ->
 		super description, ipIncrement
@@ -77,5 +83,4 @@ class InterpretedInstruction extends Instruction
 				if not condition.fallThrough
 					break
 
-
-
+module?.exports = InterpretedInstruction

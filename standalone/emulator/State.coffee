@@ -149,5 +149,5 @@ class State
 			pipelineStep: @pipelineStep
 			executionStep: @executionStep
 		}
-		
-	
+
+module?.exports = State

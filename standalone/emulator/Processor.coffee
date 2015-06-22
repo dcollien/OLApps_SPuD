@@ -1,3 +1,6 @@
+if module?.exports
+	State = require './State'
+
 class Processor
 	constructor: (@name, changeHandler) ->
 		# some defaults
@@ -6,14 +9,15 @@ class Processor
 		@numMemoryAddresses = 16
 		
 		@instructions = []
+		console.log @
 		@setRegisterNames ['IP', 'IS']
 		
 		@state = new State( this, changeHandler )
 
 		# default pipeline
 		fetch = (state) ->
-	        instruction = state.getMemory (state.getRegister 'IP')
-	        state.setRegister 'IS', instruction
+			instruction = state.getMemory (state.getRegister 'IP')
+			state.setRegister 'IS', instruction
 	
 		inc = (state) ->
 			ip = state.getRegister 'IP'
@@ -75,4 +79,4 @@ class Processor
 		unless hasIS and hasIP
 			throw new Error( "Processor must have both IP and IS registers" )
 	
-	
+module?.exports = Processor

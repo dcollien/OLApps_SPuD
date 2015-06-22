@@ -52,4 +52,4 @@ Token.typeString = (type) ->
 		"string literal"
 	]
 
-	
+module?.exports = Token

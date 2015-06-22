@@ -70,6 +70,4 @@ Symbol =
 
 	hexStart: '#'
 
-	
-
-
+module?.exports = Symbol

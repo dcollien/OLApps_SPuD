@@ -1,3 +1,8 @@
+if module?.exports
+	SyntaxError = require './SyntaxError'
+	Symbol      = require './Symbol'
+	Token       = require './Token'
+
 class Tokeniser
 	constructor: () ->
 		@position = 0
@@ -185,3 +190,5 @@ class Tokeniser
 		return @tokens
 				
 Tokeniser.tokenise = (code) -> (new Tokeniser()).tokenise code
+
+module?.exports = Tokeniser

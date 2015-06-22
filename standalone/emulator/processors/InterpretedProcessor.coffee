@@ -1,3 +1,9 @@
+if module?.exports
+	Processor   = require '../Processor'
+	Symbol      = require '../interpreter/Symbol'
+	SyntaxError = require '../interpreter/SyntaxError'
+	InterpretedInstruction = require '../instructions/InterpretedInstruction'
+
 class InterpretedProcessor extends Processor
 	constructor: (definition, changeHandler) ->
 		super '', changeHandler
@@ -104,5 +110,4 @@ class InterpretedProcessor extends Processor
 		for instructionCode in instructionCodes
 			@addInstructionCode instructionCode, descriptions
 		
-
-
+module?.exports = InterpretedProcessor

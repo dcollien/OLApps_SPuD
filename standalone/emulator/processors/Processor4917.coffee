@@ -1,3 +1,7 @@
+if module?.exports
+	Processor = require '../Processor'
+	DelegateInstruction = require '../instructions/DelegateInstruction'
+
 class Processor4917 extends Processor
 	constructor: (changeHandler) ->
 		super "4917", changeHandler
@@ -112,5 +116,5 @@ class Processor4917 extends Processor
 			ins( "Jump to address <data> if R0 == 0",         2, jumpIfR0is0 ),
 			ins( "Jump to address <data> if R0 != 0",         2, jumpIfR0not0 ),
 		]
-		
+
 		
