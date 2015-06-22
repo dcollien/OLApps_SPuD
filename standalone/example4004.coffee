@@ -67,4 +67,4 @@ emu.processor.state.setAllMemory([1, 1, 3, 8, 0, 1, 7, 5, 1, 7, 5, 7, 5, 2, 7, 0
 emu.processor.run(1000)
 # return the state as a JSON-like object
 resultState = emu.processor.state.toObject()
-
+###
